@@ -11,6 +11,7 @@
 #include <dlib/gui_widgets.h>
 
 #include "my_functions.h"
+#include "face_detection.h"
 
 using namespace std;
 using namespace cv;
@@ -51,7 +52,20 @@ int main(int argc, char* argv[])
                     namedWindow(window_name); //create a window
                     imshow(window_name, img);
                     
-                    face_detection(detector, img);
+                    image_window win;
+
+                    dlib::cv_image<dlib::bgr_pixel> cimg;
+                    cimg = FaceDetection::OpenCVMatTodlib(img);
+
+                    std::vector<dlib::rectangle> faces;
+                    faces = FaceDetection::detect_rectangle(detector, cimg);
+
+                    win.clear_overlay();
+                    win.set_image(cimg);
+                    win.add_overlay(faces, rgb_pixel(255,0,0)); //to display rectangle
+                    //win.add_overlay(render_face_detections(shapes)); //to display shape
+
+                    waitKey(0);
 
                     string output = make_prediction(img, cvNet, svm);
                     setWindowTitle(window_name, output);
@@ -96,7 +110,7 @@ int main(int argc, char* argv[])
 
             imshow(window_name, frame);
 
-            face_detection(detector, frame);
+            //FaceDetection::detect_rectangle(detector, frame);
 
             string output = make_prediction(frame, cvNet, svm);
             setWindowTitle(window_name, output);

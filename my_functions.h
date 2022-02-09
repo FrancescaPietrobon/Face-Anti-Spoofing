@@ -1,5 +1,5 @@
-#ifndef MY_FUNCTIONS_H
-#define MY_FUNCTIONS_H
+#ifndef MY_FUNCTIONS_H_
+#define MY_FUNCTIONS_H_
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/dnn/dnn.hpp>
@@ -20,6 +20,5 @@ using namespace dlib;
 
 string make_prediction(Mat img, dnn::Net cvNet, Ptr<ml::RTrees> svm);
 
-void face_detection(frontal_face_detector detector, Mat img);
 
 #endif

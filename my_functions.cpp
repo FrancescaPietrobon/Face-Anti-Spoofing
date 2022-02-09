@@ -80,7 +80,7 @@ void face_detection(frontal_face_detector detector, Mat temp)
     // Display it all on the screen
     win.clear_overlay();
     win.set_image(cimg);
-    //win.add_overlay(faces, rgb_pixel(255,0,0)); //to display rectangle
+    win.add_overlay(faces, rgb_pixel(255,0,0)); //to display rectangle
     win.add_overlay(render_face_detections(shapes)); //to display shape
 
     waitKey(0);
