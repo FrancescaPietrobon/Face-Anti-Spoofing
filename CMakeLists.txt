@@ -23,9 +23,12 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
 add_library(MyFunctions STATIC my_functions.cpp)
 
+find_package(dlib REQUIRED)
 find_package( OpenCV REQUIRED )
 include_directories( ${OpenCV_INCLUDE_DIRS} )
+include_directories(${dlib_INCLUDE_DIRS})
 
 add_executable(FaceAntiSpoofing main.cpp)# my_functions.cpp my_functions.h)
 target_link_libraries(FaceAntiSpoofing ${OpenCV_LIBS} )
+target_link_libraries(FaceAntiSpoofing ${dlib_LIBS})
 target_link_libraries(FaceAntiSpoofing MyFunctions)
