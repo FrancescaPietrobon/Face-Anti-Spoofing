@@ -20,6 +20,8 @@ using namespace dlib;
 
 int main(int argc, char* argv[])
 {
+    //windowWidth=cv2.getWindowImageRect("myWindow")[2]
+    //windowHeight=cv2.getWindowImageRect("myWindow")[3]
 
     // Load SNN
     string weights = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb";
@@ -30,42 +32,60 @@ int main(int argc, char* argv[])
 
     // Load face detection and pose estimation models.
     frontal_face_detector detector = get_frontal_face_detector();
-
     shape_predictor pose_model;
     deserialize("/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat") >> pose_model;
-    
 
-    Mat img;
+    // Set webcam options
+    int deviceID = 0;         // 0 = open default camera
+    int apiID = CAP_ANY;      // 0 = autodetect default API
     
     //string window_name = "Image selected";
     //namedWindow(window_name); //create a window
     //imshow(window_name, img);
 
-    if (argc > 2) // If there is a path for the image take it
+    if (argc > 1)
     {
         std::string img_path;
 
         for (int i = 1; i < argc; ++i)
         {
             std::string arg = argv[i];
+
+            // If a path to saved image is given, take the prediction for that image
             if ((arg == "-p") || (arg == "--path"))
             {
-                if (i + 1 < argc) // Make sure we aren't at the end of argv!
+                if (i + 1 < argc) // Make sure we aren't at the end of argv
                 {
-                    img_path = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
-                    img = imread(img_path, IMREAD_COLOR);
-                    Mat cropedImage = FaceDetection::extract_face_rect(detector, img);
+                    // Extract image path
+                    img_path = argv[++i];
+
+                    // Read image
+                    Mat img = imread(img_path, IMREAD_COLOR);
+
+                    // Extract only the face
+                    Mat cropedImage = FaceDetection::extract_face_rectangle(detector, img);
 
                     // To print Cropped Image
                     //imshow( "Cropped Image", cropedImage);
                     // waitKey(5000);
-                    
+
+                    // Check if the face is blurred
+                    bool blurred = FaceDetection::blur_detection(cropedImage);
+
+                    if (blurred)
+                    {
+                        // AGGIUNGI PLOT IMG CON SCRITTA BLURRED IMAGE
+                        std::cerr << "Blurred image." << std::endl;
+                        return 1;
+                    }
+                        
+                    // Make prediction for the face
                     string pred = make_prediction(cropedImage, cvNet, rf);
 
-                    FaceDetection::CVprint_rectangle(detector, img, pred);
+                    // Print the image with prediction, dimensions, rectangles of face detected and of face considered to make the prediction
+                    FaceDetection::cv_print_rectangle(detector, img, blurred, pred);
                     waitKey(5000);
                     
-
                 }
                 else // Uh-oh, there was no argument to the destination option.
                 { 
@@ -73,38 +93,74 @@ int main(int argc, char* argv[])
                     return 1;
                 }  
             }
+            // If a webcam realtime option is selected, make the prediction realtime for each frame 
             else if ((arg == "-wr") || (arg == "--webcamrealtime"))
             {
-                /*
-                img_path = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
-                img = imread(img_path, IMREAD_COLOR);
+                // Open the default video camera
+                VideoCapture cap;
 
-                string pred = make_prediction(img, cvNet, svm);
+                // Open selected camera using selected API
+                cap.open(deviceID, apiID);
 
-                FaceDetection::CVprint_rectangle(detector, img, pred);
-                */
+                while (true)
+                {
+                    Mat frame;
+                    // Read a new frame from video 
+                    bool bSuccess = cap.read(frame); 
+                    //imshow("Webcam", frame);
+
+                    // Breaking the while loop if the frames cannot be captured
+                    if (bSuccess == false) 
+                    {
+                        cout << "Video camera is disconnected" << endl;
+                        cin.get(); //Wait for any key press
+                        break;
+                    }
+
+                    // Extract only the face
+                    Mat cropedImage = FaceDetection::extract_face_rectangle(detector, frame);
+
+                    // Check if the face is blurred
+                    bool blurred = FaceDetection::blur_detection(cropedImage);
+                    
+                    // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
+                    if (!blurred)
+                    {
+                        string pred = make_prediction(cropedImage, cvNet, rf);
+                        FaceDetection::cv_print_rectangle(detector, frame, blurred, pred);
+                    }
+                    else
+                        FaceDetection::cv_print_rectangle(detector, frame, blurred);
+
+                    // Check when close webcam
+                    if (waitKey(1) == 27)
+                    {
+                        cout << "Esc key is pressed by user. Stoppig the video" << endl;
+                        break;
+                    }
+                }
             }
         }
     }
-    else // If there is no path to the image open the webcam
+    // If there is no option are selected, collect the frame images and than make the prediction
+    else
     {
-        //namedWindow(window_name);
-        //Open the default video camera
+        // Open the default video camera
         VideoCapture cap;
-        int deviceID = 0;         // 0 = open default camera
-        int apiID = CAP_ANY;      // 0 = autodetect default API
-        // open selected camera using selected API
+
+        // Open selected camera using selected API
         cap.open(deviceID, apiID);
 
-        
+        string window_name = "Webcam";
 
-        int j = 1;
-
+        int i = 1;
         while (true)
         {
             Mat frame;
-            bool bSuccess = cap.read(frame); // read a new frame from video 
-            imshow("Webcam", frame);
+            Mat black = Mat::zeros(Size(frame.cols,frame.rows),CV_8UC1);
+
+            // Read a new frame from video
+            bool bSuccess = cap.read(frame);
 
             // Breaking the while loop if the frames cannot be captured
             if (bSuccess == false) 
@@ -113,23 +169,44 @@ int main(int argc, char* argv[])
                 cin.get(); //Wait for any key press
                 break;
             }
+            
+            
+            // Until the decided number of frames is not reached collect frames
+            if (i < 20)
+            {
+                // Extract only the face
+                Mat cropedFrame = FaceDetection::extract_face_rectangle(detector, frame);
+                
+                
+                // Check if the face is blurred
+                bool blurred = FaceDetection::blur_detection(cropedFrame);
+                
+                if (!blurred)
+                {
+                    // Save frame
+                    imwrite("/home/fra/Project/Frames/frame" + std::to_string(i) +".jpg", cropedFrame);
+                    i++;
+                }  
+            }
+            else
+            {
+                Mat black = Mat::zeros(Size(frame.cols,frame.rows),CV_8UC1);
+                // Black screen while the prediction is computed
+                black.copyTo(frame);
+                
+            }
 
-            // Save frame
-            //imwrite("/home/fra/Project/Frames/frame" + std::to_string(i+1) +".jpg", frame);
+            imshow(window_name, frame);
 
-            //imshow(window_name, frame);
-            Mat cropedImage = FaceDetection::extract_face_rect(detector, frame);
 
-            /* Print laplacian image
-            Mat abs_dst = FaceDetection::laplacian_plot(frame);
-            const char* window_name = "Laplace Demo";
-            imshow(window_name, abs_dst);
-            */
-
+            //frame(320, 240, CV_8UC3, Scalar(0,0,0));
+            //imshow('Single Channel Window', my_img_1)
+ 
+            
             //string pred = make_prediction(cropedImage, cvNet, rf);
 
-            string blur = FaceDetection::blur_detection(cropedImage);
-            setWindowTitle("Webcam", blur);
+
+            //setWindowTitle("Webcam", blur);
             
             //putText(temp, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
 
@@ -137,10 +214,10 @@ int main(int argc, char* argv[])
             //std::vector<full_object_detection> faces = FaceDetection::detect_shape(pose_model, detector, frame);
             //FaceDetection::print_shape(frame, faces);
             
-            //FaceDetection::CVprint_rectangle(detector, frame, pred);
+            //FaceDetection::cv_print_rectangle(detector, frame, pred);
 
-            j += 1;
-
+            
+            // Check when close webcam
             if (waitKey(1) == 27)
             {
                 cout << "Esc key is pressed by user. Stoppig the video" << endl;
@@ -155,6 +232,16 @@ int main(int argc, char* argv[])
 
 }
 
+
+//putText(temp, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+
+/* To print laplacian image
+    Mat abs_dst = FaceDetection::laplacian_plot(frame);
+    const char* window_name = "Laplace Demo";
+    imshow(window_name, abs_dst);
+*/
+
+
 /* To print rectangle and shape of the face detected
     // to extract rectangle
     std::vector<dlib::rectangle> faces = FaceDetection::detect_rectangle(detector, img);
@@ -162,8 +249,8 @@ int main(int argc, char* argv[])
     // to extract face
     //std::vector<full_object_detection> faces = FaceDetection::detect_shape(pose_model, detector, img);
 
-    FaceDetection::print_rectangle(img, faces, output);
-    //FaceDetection::CVprint_rectangle(detector, img);
+    FaceDetection::dlib_print_rectangle(img, faces, output);
+    //FaceDetection::cv_print_rectangle(detector, img);
     //FaceDetection::print_shape(img, faces);
 */
 

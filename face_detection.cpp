@@ -5,32 +5,28 @@ using namespace std;
 using namespace dlib;
 
 
-cv::Rect FaceDetection::expand_face_rect(cv::Rect rect)
+cv::Rect FaceDetection::expand_face_rectangle(cv::Rect rect)
 {
     //Rect(X,Y,Width,Height)
     //return Rect(max(rect.x - int(rect.width/2), 0), max(rect.y - int(rect.height/2), 0), rect.width * 2, rect.height * 2);
+
+    // CONTROLLA OUT OF BOUNDS!!!
+
     return Rect(rect.x - 70, rect.y - 70, rect.width + 140, rect.height + 140);
 }
 
 
-Mat FaceDetection::extract_face_rect(frontal_face_detector detector, Mat temp)
+Mat FaceDetection::extract_face_rectangle(frontal_face_detector detector, Mat temp)
 {
-    std::vector<dlib::rectangle> faceRectsDlib = FaceDetection::detect_rectangle(detector, temp);
+    // Detect face in dlib rectangle
+    dlib::rectangle faceRectDlib = FaceDetection::detect_rectangle(detector, temp);
 
-    if (faceRectsDlib.size() > 1)
-    {
-        std::cerr << "More than one face" << std::endl;
-    }
+    // Convert dlib rectangle in OpenCV rectangle
+    cv::Rect faceRectCV = FaceDetection::dlib_rectangle_to_cv(faceRectDlib);
 
-    cv::Rect faceRectsCV = FaceDetection::dlibRectangleToOpenCV(faceRectsDlib[0]);
+    cv::Rect ExpfaceRectCV = expand_face_rectangle(faceRectCV);
 
-    cv::Rect ExpfaceRectsCV = expand_face_rect(faceRectsCV);
-
-    Mat cropedImage = temp(ExpfaceRectsCV);
-
-    //Mat cropedImage = croppedRef(temp, ExpfaceRectsCV);
-
-    return cropedImage;
+    Mat cropedImage = temp(ExpfaceRectCV);
 
     /* To save cropped image
     cv::Mat cropped;
@@ -38,59 +34,56 @@ Mat FaceDetection::extract_face_rect(frontal_face_detector detector, Mat temp)
     croppedRef.copyTo(cropped);
     */
 
-
-    /* If manage multiple faces
-    std::vector<cv::Rect> faceRectsCV;
-
-    for ( size_t i = 0; i < faceRectsDlib.size(); i++ )
-	{
-        faceRectsCV.push_back(FaceDetection::dlibRectangleToOpenCV(dlib::rectangle faceRectsDlib[i]));
-    }
-    */
+    return cropedImage;
 
 }
 
 
-void FaceDetection::CVprint_rectangle(frontal_face_detector detector, Mat temp, string pred)
+void FaceDetection::cv_print_rectangle(frontal_face_detector detector, Mat temp, bool blurred, string pred)
 {
     //https://learnopencv.com/face-detection-opencv-dlib-and-deep-learning-c-python/
 
     // Detect faces in the image
-	std::vector<dlib::rectangle> faceRects = FaceDetection::detect_rectangle(detector, temp);
+	dlib::rectangle faceRect = FaceDetection::detect_rectangle(detector, temp);
 
     int frameHeight = 100;
 
-	for ( size_t i = 0; i < faceRects.size(); i++ )
-	{
-	    int x1 = faceRects[i].left();
-	    int y1 = faceRects[i].top();
-	    int x2 = faceRects[i].right();
-	    int y2 = faceRects[i].bottom();
+	int x1 = faceRect.left();
+	int y1 = faceRect.top();
+	int x2 = faceRect.right();
+	int y2 = faceRect.bottom();
 
-        Rect faceRectsCV = FaceDetection::dlibRectangleToOpenCV(faceRects[i]);
-        Rect faceResctExp = FaceDetection::expand_face_rect(faceRectsCV);
+    Rect faceRectCV = FaceDetection::dlib_rectangle_to_cv(faceRect);
+    Rect ExpfaceRectCV = FaceDetection::expand_face_rectangle(faceRectCV);
 
-        int x = faceResctExp.x;
-	    int y = faceResctExp.y;
-	    int width = faceResctExp.width;
-	    int height = faceResctExp.height;
+    int x = ExpfaceRectCV.x;
+	int y = ExpfaceRectCV.y;
+	int width = ExpfaceRectCV.width;
+	int height = ExpfaceRectCV.height;
 
-        // Plot face detected
-	    cv::rectangle(temp, Point(x1, y1), Point(x2, y2), Scalar(0,255,0), (int)(frameHeight/150.0), 4);
-        // Plot face detected expanded
-        cv::rectangle(temp, Point(x, y), Point(x + width, y + height), Scalar(0,255,0), (int)(frameHeight/150.0), 4);
+    // Plot face detected
+	cv::rectangle(temp, Point(x1, y1), Point(x2, y2), Scalar(0, 255, 0), (int)(frameHeight/150.0), 4);
 
+    // Plot face detected expanded
+    cv::rectangle(temp, Point(x, y), Point(x + width, y + height), Scalar(255,0,0), (int)(frameHeight/150.0), 4);
+
+    // Plot result of the prediction if exists otherwise plot blurred if the image is blurred
+    if (pred != "Null")
         putText(temp, pred,  Point(x1 + int((x2-x1)/2) - 5, y1 - 3), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
-        string dim = to_string(x2-x1) + string("x") + to_string(y2-y1);
-        putText(temp, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
-        imshow( "Image", temp );
-        //imwrite("/home/fra/Project/Frames/frame" + std::to_string(j+1) +".jpg", temp);
-	}
+    else if (blurred)
+        putText(temp, "Blurred",  Point(x1 + int((x2-x1)/2) - 5, y1 - 3), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+
+    // Plot dimension of the rectangle
+    string dim = to_string(x2-x1) + string("x") + to_string(y2-y1);
+    putText(temp, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+
+    imshow( "Image", temp );
+    //imwrite("/home/fra/Project/Frames/frame" + std::to_string(j+1) +".jpg", temp);
     
 
 }
 
-std::vector<dlib::rectangle> FaceDetection::detect_rectangle(frontal_face_detector detector, Mat temp)
+dlib::rectangle FaceDetection::detect_rectangle(frontal_face_detector detector, Mat temp)
 {
     // http://dlib.net/webcam_face_pose_ex.cpp.html
 
@@ -98,38 +91,38 @@ std::vector<dlib::rectangle> FaceDetection::detect_rectangle(frontal_face_detect
     //pyramid_up(temp);
 
     // Convert OpenCV image format to Dlib's image format
-    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::OpenCVMatTodlib(temp);
+    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(temp);
 
     // Detect faces 
     std::vector<dlib::rectangle> faces = detector(cimg);
 
-    return faces;
+    if (faces.size() > 1)
+        std::cerr << "More than one face" << std::endl;
+
+    return faces[0];
     
 }
 
 std::vector<full_object_detection> FaceDetection::detect_shape(shape_predictor pose_model, frontal_face_detector detector, Mat temp)
 {
-    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::OpenCVMatTodlib(temp);
+    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(temp);
 
     // Detect faces 
-    std::vector<dlib::rectangle> faces = FaceDetection::detect_rectangle(detector, temp);
+    dlib::rectangle face = FaceDetection::detect_rectangle(detector, temp);
 
     // Find the pose of each face.
     std::vector<full_object_detection> shapes;
 
-    
-    for (unsigned long i = 0; i < faces.size(); ++i)
-        shapes.push_back(pose_model(cimg, faces[i]));
-    
+    shapes.push_back(pose_model(cimg, face));
 
     return shapes;
     
 }
 
 
-void FaceDetection::print_rectangle(Mat img, std::vector<dlib::rectangle> faces, string pred)
+void FaceDetection::dlib_print_rectangle(Mat img, std::vector<dlib::rectangle> faces, string pred)
 {
-    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::OpenCVMatTodlib(img);
+    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(img);
 
     image_window win;
     win.clear_overlay();
@@ -144,7 +137,7 @@ void FaceDetection::print_rectangle(Mat img, std::vector<dlib::rectangle> faces,
 
 void FaceDetection::print_shape(Mat img, std::vector<full_object_detection> faces)
 {
-    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::OpenCVMatTodlib(img);
+    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(img);
 
     image_window win;
     win.clear_overlay();
@@ -155,7 +148,7 @@ void FaceDetection::print_shape(Mat img, std::vector<full_object_detection> face
 }
 
 
-dlib::cv_image<dlib::bgr_pixel> FaceDetection::OpenCVMatTodlib(Mat temp)
+dlib::cv_image<dlib::bgr_pixel> FaceDetection::cv_mat_to_dlib(Mat temp)
 {
     // Turn OpenCV's Mat into something dlib can deal with
     auto ipl_img = cvIplImage(temp); //_IplImage type
@@ -164,13 +157,13 @@ dlib::cv_image<dlib::bgr_pixel> FaceDetection::OpenCVMatTodlib(Mat temp)
 }
 
 
-cv::Rect FaceDetection::dlibRectangleToOpenCV(dlib::rectangle r)
+cv::Rect FaceDetection::dlib_rectangle_to_cv(dlib::rectangle r)
 {
     return cv::Rect(cv::Point2i(r.left(), r.top()), cv::Point2i(r.right() + 1, r.bottom() + 1));
 }
 
 
-dlib::rectangle FaceDetection::openCVRectToDlib(cv::Rect r)
+dlib::rectangle FaceDetection::cv_rectangle_to_dlib(cv::Rect r)
 {
     return dlib::rectangle((long)r.tl().x, (long)r.tl().y, (long)r.br().x - 1, (long)r.br().y - 1);
 }
@@ -200,7 +193,7 @@ Mat FaceDetection::laplacian_plot(Mat img)
 }
 
 
-string FaceDetection::blur_detection(Mat img)
+bool FaceDetection::blur_detection(Mat img)
 {
     // https://stackoverflow.com/questions/24080123/opencv-with-laplacian-formula-to-detect-image-is-blur-or-not-in-ios
     // https://www.pyimagesearch.com/2015/09/07/blur-detection-with-opencv/
@@ -211,18 +204,25 @@ string FaceDetection::blur_detection(Mat img)
     cvtColor(img, gray, COLOR_BGR2GRAY);
 
     Laplacian(gray, laplacianImage, CV_64F);
-    Scalar mean, stddev; // 0:1st channel, 1:2nd channel and 2:3rd channel
+    Scalar mean, stddev;
     meanStdDev(laplacianImage, mean, stddev, Mat());
     double variance = stddev.val[0] * stddev.val[0];
 
-    double threshold = 5;
+    double threshold = 6.5;
 
+    bool blurred = true;
+
+    if (variance >= threshold)
+        blurred = false;
+
+    /*
     string text = "Not Blurry";
 
     if (variance <= threshold)
         text = "Blurry";
+    */
 
-    return text;
+    return blurred;
 }
 
 
