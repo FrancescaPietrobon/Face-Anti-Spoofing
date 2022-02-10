@@ -9,11 +9,8 @@ void FaceDetection::CVprint_rectangle(frontal_face_detector detector, Mat temp, 
 {
     //https://learnopencv.com/face-detection-opencv-dlib-and-deep-learning-c-python/
 
-    // Convert OpenCV image format to Dlib's image format
-    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::OpenCVMatTodlib(temp);
-
     // Detect faces in the image
-	std::vector<dlib::rectangle> faceRects = detector(cimg);
+	std::vector<dlib::rectangle> faceRects = FaceDetection::detect_rectangle(detector, temp);
 
     int frameHeight = 100;
 
@@ -25,6 +22,8 @@ void FaceDetection::CVprint_rectangle(frontal_face_detector detector, Mat temp, 
 	  int y2 = faceRects[i].bottom();
 	  cv::rectangle(temp, Point(x1, y1), Point(x2, y2), Scalar(0,255,0), (int)(frameHeight/150.0), 4);
       putText(temp, pred,  Point(x1 + int((x2-x1)/2) - 5, y1 - 3), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+      string dim = to_string(x2-x1) + string("x") + to_string(y2-y1);
+      putText(temp, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
       imshow( "Image", temp );
 	}
     
@@ -38,6 +37,7 @@ std::vector<dlib::rectangle> FaceDetection::detect_rectangle(frontal_face_detect
     // Make the image bigger by a factor of two.  This is useful since the face detector looks for faces that are about 80 by 80 pixels or larger. 
     //pyramid_up(temp);
 
+    // Convert OpenCV image format to Dlib's image format
     dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::OpenCVMatTodlib(temp);
 
     // Detect faces 
@@ -77,7 +77,7 @@ void FaceDetection::print_rectangle(Mat img, std::vector<dlib::rectangle> faces,
     if (pred == "Null")
         win.add_overlay(faces);
     else
-        win.add_overlay(dlib::image_window::overlay_rect(faces[0], dlib::rgb_pixel(0, 0, 255), pred)); //if also with prediction
+        win.add_overlay(dlib::image_window::overlay_rect(faces[0], dlib::rgb_pixel(0, 0, 255), pred));
     waitKey(5000);
 
 }
