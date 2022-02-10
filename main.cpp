@@ -54,11 +54,17 @@ int main(int argc, char* argv[])
                 {
                     img_path = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
                     img = imread(img_path, IMREAD_COLOR);
+                    Mat cropedImage = FaceDetection::extract_face_rect(detector, img);
 
-                    string pred = make_prediction(img, cvNet, rf);
+                    // To print Cropped Image
+                    //imshow( "Cropped Image", cropedImage);
+                    // waitKey(5000);
+                    
+                    string pred = make_prediction(cropedImage, cvNet, rf);
 
                     FaceDetection::CVprint_rectangle(detector, img, pred);
                     waitKey(5000);
+                    
 
                 }
                 else // Uh-oh, there was no argument to the destination option.
@@ -90,11 +96,15 @@ int main(int argc, char* argv[])
         // open selected camera using selected API
         cap.open(deviceID, apiID);
 
-        int i = 0;
+        
+
+        int j = 1;
+
         while (true)
         {
             Mat frame;
             bool bSuccess = cap.read(frame); // read a new frame from video 
+            imshow("Webcam", frame);
 
             // Breaking the while loop if the frames cannot be captured
             if (bSuccess == false) 
@@ -108,11 +118,28 @@ int main(int argc, char* argv[])
             //imwrite("/home/fra/Project/Frames/frame" + std::to_string(i+1) +".jpg", frame);
 
             //imshow(window_name, frame);
-            string pred = make_prediction(frame, cvNet, rf);
+            Mat cropedImage = FaceDetection::extract_face_rect(detector, frame);
 
-            FaceDetection::CVprint_rectangle(detector, frame, pred);
+            /* Print laplacian image
+            Mat abs_dst = FaceDetection::laplacian_plot(frame);
+            const char* window_name = "Laplace Demo";
+            imshow(window_name, abs_dst);
+            */
 
-            i += 1;
+            //string pred = make_prediction(cropedImage, cvNet, rf);
+
+            string blur = FaceDetection::blur_detection(cropedImage);
+            setWindowTitle("Webcam", blur);
+            
+            //putText(temp, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+
+
+            //std::vector<full_object_detection> faces = FaceDetection::detect_shape(pose_model, detector, frame);
+            //FaceDetection::print_shape(frame, faces);
+            
+            //FaceDetection::CVprint_rectangle(detector, frame, pred);
+
+            j += 1;
 
             if (waitKey(1) == 27)
             {

@@ -20,6 +20,8 @@ using namespace dlib;
 
 namespace FaceDetection
 {
+    cv::Rect expand_face_rect(cv::Rect rect);
+    Mat extract_face_rect(frontal_face_detector detector, Mat temp);
     std::vector<dlib::rectangle> detect_rectangle(frontal_face_detector detector, Mat temp);
     std::vector<full_object_detection> detect_shape(shape_predictor pose_model, frontal_face_detector detector, Mat temp);
     void CVprint_rectangle(frontal_face_detector detector, Mat temp, string pred = "Null");
@@ -28,6 +30,8 @@ namespace FaceDetection
     dlib::cv_image<dlib::bgr_pixel> OpenCVMatTodlib(Mat temp);
     cv::Rect dlibRectangleToOpenCV(dlib::rectangle r);
     dlib::rectangle openCVRectToDlib(cv::Rect r);
+    Mat laplacian_plot(Mat img);
+    string blur_detection(Mat img);
 
 };
 
