@@ -9,10 +9,7 @@ std::vector<dlib::rectangle> FaceDetection::detect_rectangle(frontal_face_detect
 {
     // http://dlib.net/webcam_face_pose_ex.cpp.html
 
-    //image_window win;
 
-    shape_predictor pose_model;
-    deserialize("/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat") >> pose_model;
 
     // Make the image bigger by a factor of two.  This is useful since the face detector looks for faces that are about 80 by 80 pixels or larger. 
     //pyramid_up(temp);
@@ -24,19 +21,20 @@ std::vector<dlib::rectangle> FaceDetection::detect_rectangle(frontal_face_detect
     
 }
 
-std::vector<full_object_detection> FaceDetection::detect_shape(frontal_face_detector detector, dlib::cv_image<dlib::bgr_pixel> temp)
+std::vector<full_object_detection> FaceDetection::detect_shape(shape_predictor pose_model, frontal_face_detector detector, Mat temp)
 {
+    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::OpenCVMatTodlib(temp);
 
     // Detect faces 
-    std::vector<dlib::rectangle> faces = FaceDetection::detect_rectangle(detector, temp);
+    std::vector<dlib::rectangle> faces = FaceDetection::detect_rectangle(detector, cimg);
 
     // Find the pose of each face.
     std::vector<full_object_detection> shapes;
 
-    /*
+    
     for (unsigned long i = 0; i < faces.size(); ++i)
         shapes.push_back(pose_model(cimg, faces[i]));
-    */
+    
 
     return shapes;
     

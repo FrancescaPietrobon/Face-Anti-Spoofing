@@ -30,11 +30,16 @@ int main(int argc, char* argv[])
 
     // Load face detection and pose estimation models.
     frontal_face_detector detector = get_frontal_face_detector();
+
+    shape_predictor pose_model;
+    deserialize("/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat") >> pose_model;
     
 
     Mat img;
     
     string window_name = "Image selected";
+    //namedWindow(window_name); //create a window
+    //imshow(window_name, img);
 
     if (argc > 2) // If there is a path for the image take it
     {
@@ -49,28 +54,28 @@ int main(int argc, char* argv[])
                 {
                     img_path = argv[2]; // before was argv[i++]: Increment 'i' so we don't get the argument as the next argv[i].
                     img = imread(img_path, IMREAD_COLOR);
-                    namedWindow(window_name); //create a window
-                    imshow(window_name, img);
+                    
                     
                     image_window win;
 
                     dlib::cv_image<dlib::bgr_pixel> cimg;
                     cimg = FaceDetection::OpenCVMatTodlib(img);
 
-                    std::vector<dlib::rectangle> faces;
-                    faces = FaceDetection::detect_rectangle(detector, cimg);
+                    // to extract rectangle
+                    //std::vector<dlib::rectangle> faces;
+                    //faces = FaceDetection::detect_rectangle(detector, cimg);
+
+                    // to extract face
+                    std::vector<full_object_detection>  faces;
+                    faces = FaceDetection::detect_shape(pose_model, detector, img);
+
+                    string output = make_prediction(img, cvNet, svm);
 
                     win.clear_overlay();
                     win.set_image(cimg);
-                    win.add_overlay(faces, rgb_pixel(255,0,0)); //to display rectangle
-                    //win.add_overlay(render_face_detections(shapes)); //to display shape
-
-                    waitKey(0);
-
-                    string output = make_prediction(img, cvNet, svm);
-                    setWindowTitle(window_name, output);
-
-                    waitKey(0);
+                    //win.add_overlay(dlib::image_window::overlay_rect(faces[0], dlib::rgb_pixel(0, 0, 255), output)); //rectangle with prediction
+                    win.add_overlay(render_face_detections(faces)); //face
+                    waitKey(10000);
                 }
                 else // Uh-oh, there was no argument to the destination option.
                 { 

@@ -21,7 +21,7 @@ using namespace dlib;
 namespace FaceDetection
 {
     std::vector<dlib::rectangle> detect_rectangle(frontal_face_detector detector, dlib::cv_image<dlib::bgr_pixel> temp);
-    std::vector<full_object_detection> detect_shape(frontal_face_detector detector, dlib::cv_image<dlib::bgr_pixel> temp);
+    std::vector<full_object_detection> detect_shape(shape_predictor pose_model, frontal_face_detector detector, Mat temp);
     dlib::cv_image<dlib::bgr_pixel> OpenCVMatTodlib(Mat temp);
     cv::Rect dlibRectangleToOpenCV(dlib::rectangle r);
     dlib::rectangle openCVRectToDlib(cv::Rect r);
