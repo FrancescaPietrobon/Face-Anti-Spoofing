@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
     dnn::Net cvNet = cv::dnn::readNetFromTensorflow(weights);
 
     // Load ML Model
-    Ptr<ml::RTrees> svm = Algorithm::load<ml::RTrees> ("/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml");
+    Ptr<ml::RTrees> rf = Algorithm::load<ml::RTrees> ("/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml");
 
     // Load face detection and pose estimation models.
     frontal_face_detector detector = get_frontal_face_detector();
@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 
     Mat img;
     
-    string window_name = "Image selected";
+    //string window_name = "Image selected";
     //namedWindow(window_name); //create a window
     //imshow(window_name, img);
 
@@ -54,20 +54,11 @@ int main(int argc, char* argv[])
                 {
                     img_path = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
                     img = imread(img_path, IMREAD_COLOR);
-                    
-                    
-                    FaceDetection::CVprint_rectangle(detector, img);
-                    
-                    // to extract rectangle
-                    std::vector<dlib::rectangle> faces = FaceDetection::detect_rectangle(detector, img);
 
-                    // to extract face
-                    //std::vector<full_object_detection> faces = FaceDetection::detect_shape(pose_model, detector, img);
+                    string pred = make_prediction(img, cvNet, rf);
 
-                    string output = make_prediction(img, cvNet, svm);
-
-                    FaceDetection::print_rectangle(img, faces, output);
-                    //FaceDetection::print_shape(img, faces);
+                    FaceDetection::CVprint_rectangle(detector, img, pred);
+                    waitKey(5000);
 
                 }
                 else // Uh-oh, there was no argument to the destination option.
@@ -76,12 +67,22 @@ int main(int argc, char* argv[])
                     return 1;
                 }  
             }
-            // POSSO AGGIUNGERE ANCHE PATH AI MODELLI
+            else if ((arg == "-wr") || (arg == "--webcamrealtime"))
+            {
+                /*
+                img_path = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
+                img = imread(img_path, IMREAD_COLOR);
+
+                string pred = make_prediction(img, cvNet, svm);
+
+                FaceDetection::CVprint_rectangle(detector, img, pred);
+                */
+            }
         }
     }
     else // If there is no path to the image open the webcam
     {
-        namedWindow(window_name);
+        //namedWindow(window_name);
         //Open the default video camera
         VideoCapture cap;
         int deviceID = 0;         // 0 = open default camera
@@ -106,21 +107,14 @@ int main(int argc, char* argv[])
             // Save frame
             //imwrite("/home/fra/Project/Frames/frame" + std::to_string(i+1) +".jpg", frame);
 
-            imshow(window_name, frame);
+            //imshow(window_name, frame);
+            string pred = make_prediction(frame, cvNet, rf);
 
-            //FaceDetection::detect_rectangle(detector, frame);
-
-            string output = make_prediction(frame, cvNet, svm);
-            setWindowTitle(window_name, output);
+            FaceDetection::CVprint_rectangle(detector, frame, pred);
 
             i += 1;
 
-            
-            //wait for for 100 ms until any key is pressed.  
-            //If the 'Esc' key is pressed, break the while loop.
-            //If the any other key is pressed, continue the loop 
-            //If any key is not pressed withing 100 ms, continue the loop 
-            if (waitKey(100) == 27)
+            if (waitKey(1) == 27)
             {
                 cout << "Esc key is pressed by user. Stoppig the video" << endl;
                 break;
@@ -134,13 +128,24 @@ int main(int argc, char* argv[])
 
 }
 
+/* To print rectangle and shape of the face detected
+    // to extract rectangle
+    std::vector<dlib::rectangle> faces = FaceDetection::detect_rectangle(detector, img);
+
+    // to extract face
+    //std::vector<full_object_detection> faces = FaceDetection::detect_shape(pose_model, detector, img);
+
+    FaceDetection::print_rectangle(img, faces, output);
+    //FaceDetection::CVprint_rectangle(detector, img);
+    //FaceDetection::print_shape(img, faces);
+*/
 
 
 
-    /* To monitor time
+/* To monitor time
     auto start_SNN = chrono::high_resolution_clock::now();
     auto stop_SNN = chrono::high_resolution_clock::now();
     auto duration_SNN = chrono::duration_cast<chrono::milliseconds>(stop_SNN - start_SNN);
     cout << "Time taken to load SNN: "
          << duration_SNN.count() << " milliseconds" << endl;
-    */
+*/

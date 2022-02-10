@@ -22,7 +22,7 @@ namespace FaceDetection
 {
     std::vector<dlib::rectangle> detect_rectangle(frontal_face_detector detector, Mat temp);
     std::vector<full_object_detection> detect_shape(shape_predictor pose_model, frontal_face_detector detector, Mat temp);
-    void CVprint_rectangle(frontal_face_detector detector, Mat temp);
+    void CVprint_rectangle(frontal_face_detector detector, Mat temp, string pred = "Null");
     void print_rectangle(Mat img, std::vector<dlib::rectangle> faces, string pred = "Null");
     void print_shape(Mat img, std::vector<full_object_detection> faces);
     dlib::cv_image<dlib::bgr_pixel> OpenCVMatTodlib(Mat temp);

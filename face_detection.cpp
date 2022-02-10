@@ -5,7 +5,7 @@ using namespace std;
 using namespace dlib;
 
 
-void FaceDetection::CVprint_rectangle(frontal_face_detector detector, Mat temp)
+void FaceDetection::CVprint_rectangle(frontal_face_detector detector, Mat temp, string pred)
 {
     //https://learnopencv.com/face-detection-opencv-dlib-and-deep-learning-c-python/
 
@@ -24,8 +24,8 @@ void FaceDetection::CVprint_rectangle(frontal_face_detector detector, Mat temp)
 	  int x2 = faceRects[i].right();
 	  int y2 = faceRects[i].bottom();
 	  cv::rectangle(temp, Point(x1, y1), Point(x2, y2), Scalar(0,255,0), (int)(frameHeight/150.0), 4);
-      imshow( "result", temp );
-      waitKey(5000);
+      putText(temp, pred,  Point(x1 + int((x2-x1)/2) - 5, y1 - 3), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+      imshow( "Image", temp );
 	}
     
 
@@ -115,26 +115,6 @@ dlib::rectangle FaceDetection::openCVRectToDlib(cv::Rect r)
     return dlib::rectangle((long)r.tl().x, (long)r.tl().y, (long)r.br().x - 1, (long)r.br().y - 1);
 }
 
-
-    /*
-
-    // Find the pose of each face.
-    std::vector<full_object_detection> shapes;
-
-    for (unsigned long i = 0; i < faces.size(); ++i)
-        //cout << i << endl;
-        shapes.push_back(pose_model(cimg, faces[i]));
-
-    
-
-    // Display it all on the screen
-    win.clear_overlay();
-    win.set_image(cimg);
-    win.add_overlay(faces, rgb_pixel(255,0,0)); //to display rectangle
-    win.add_overlay(render_face_detections(shapes)); //to display shape
-
-    waitKey(0);
-    */
 
 
 
