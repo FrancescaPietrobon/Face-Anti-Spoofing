@@ -52,30 +52,23 @@ int main(int argc, char* argv[])
             {
                 if (i + 1 < argc) // Make sure we aren't at the end of argv!
                 {
-                    img_path = argv[2]; // before was argv[i++]: Increment 'i' so we don't get the argument as the next argv[i].
+                    img_path = argv[++i]; // Increment 'i' so we don't get the argument as the next argv[i].
                     img = imread(img_path, IMREAD_COLOR);
                     
                     
-                    image_window win;
-
-                    dlib::cv_image<dlib::bgr_pixel> cimg;
-                    cimg = FaceDetection::OpenCVMatTodlib(img);
-
+                    FaceDetection::CVprint_rectangle(detector, img);
+                    
                     // to extract rectangle
-                    //std::vector<dlib::rectangle> faces;
-                    //faces = FaceDetection::detect_rectangle(detector, cimg);
+                    std::vector<dlib::rectangle> faces = FaceDetection::detect_rectangle(detector, img);
 
                     // to extract face
-                    std::vector<full_object_detection>  faces;
-                    faces = FaceDetection::detect_shape(pose_model, detector, img);
+                    //std::vector<full_object_detection> faces = FaceDetection::detect_shape(pose_model, detector, img);
 
                     string output = make_prediction(img, cvNet, svm);
 
-                    win.clear_overlay();
-                    win.set_image(cimg);
-                    //win.add_overlay(dlib::image_window::overlay_rect(faces[0], dlib::rgb_pixel(0, 0, 255), output)); //rectangle with prediction
-                    win.add_overlay(render_face_detections(faces)); //face
-                    waitKey(10000);
+                    FaceDetection::print_rectangle(img, faces, output);
+                    //FaceDetection::print_shape(img, faces);
+
                 }
                 else // Uh-oh, there was no argument to the destination option.
                 { 
