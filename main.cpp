@@ -10,7 +10,7 @@
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
 
-#include "my_functions.h"
+#include "antispoofing_detection.h"
 #include "face_detection.h"
 
 using namespace std;
@@ -22,6 +22,8 @@ int main(int argc, char* argv[])
 {
     //windowWidth=cv2.getWindowImageRect("myWindow")[2]
     //windowHeight=cv2.getWindowImageRect("myWindow")[3]
+
+    string frames_path = "/home/fra/Project/Frames/";
 
     // Load SNN
     string weights = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb";
@@ -80,7 +82,7 @@ int main(int argc, char* argv[])
                     }
                         
                     // Make prediction for the face
-                    string pred = make_prediction(cropedImage, cvNet, rf);
+                    string pred = AntiSpoofingDetection::make_prediction(cropedImage, cvNet, rf);
 
                     // Print the image with prediction, dimensions, rectangles of face detected and of face considered to make the prediction
                     FaceDetection::cv_print_rectangle(detector, img, blurred, pred);
@@ -126,7 +128,7 @@ int main(int argc, char* argv[])
                     // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
                     if (!blurred)
                     {
-                        string pred = make_prediction(cropedImage, cvNet, rf);
+                        string pred = AntiSpoofingDetection::make_prediction(cropedImage, cvNet, rf);
                         FaceDetection::cv_print_rectangle(detector, frame, blurred, pred);
                     }
                     else
@@ -152,28 +154,27 @@ int main(int argc, char* argv[])
         cap.open(deviceID, apiID);
 
         string window_name = "Webcam";
+        string pred = "Null";
 
         int i = 1;
+        Mat frame;
+
         while (true)
         {
-            Mat frame;
-            Mat black = Mat::zeros(Size(frame.cols,frame.rows),CV_8UC1);
-
-            // Read a new frame from video
-            bool bSuccess = cap.read(frame);
-
-            // Breaking the while loop if the frames cannot be captured
-            if (bSuccess == false) 
-            {
-                cout << "Video camera is disconnected" << endl;
-                cin.get(); //Wait for any key press
-                break;
-            }
-            
-            
             // Until the decided number of frames is not reached collect frames
-            if (i < 20)
+            if (i < 50)
             {
+                // Read a new frame from video
+                bool bSuccess = cap.read(frame);
+
+                // Breaking the while loop if the frames cannot be captured
+                if (bSuccess == false) 
+                {
+                    cout << "Video camera is disconnected" << endl;
+                    cin.get(); //Wait for any key press
+                    break;
+                }
+
                 // Extract only the face
                 Mat cropedFrame = FaceDetection::extract_face_rectangle(detector, frame);
                 
@@ -181,42 +182,26 @@ int main(int argc, char* argv[])
                 // Check if the face is blurred
                 bool blurred = FaceDetection::blur_detection(cropedFrame);
                 
+                
                 if (!blurred)
                 {
                     // Save frame
-                    imwrite("/home/fra/Project/Frames/frame" + std::to_string(i) +".jpg", cropedFrame);
+                    imwrite(frames_path + "frame" + std::to_string(i) +".jpg", cropedFrame);
                     i++;
-                }  
+                } 
+                imshow(window_name, frame);
             }
             else
             {
-                Mat black = Mat::zeros(Size(frame.cols,frame.rows),CV_8UC1);
-                // Black screen while the prediction is computed
-                black.copyTo(frame);
+                if (pred == "Null")
+                    AntiSpoofingDetection::print_status(frame, "Performing prediction...", window_name);
+                else
+                    AntiSpoofingDetection::print_status(frame, pred, window_name);
+
+                pred = AntiSpoofingDetection::multiple_prediction(frames_path, cvNet, rf);
                 
             }
 
-            imshow(window_name, frame);
-
-
-            //frame(320, 240, CV_8UC3, Scalar(0,0,0));
-            //imshow('Single Channel Window', my_img_1)
- 
-            
-            //string pred = make_prediction(cropedImage, cvNet, rf);
-
-
-            //setWindowTitle("Webcam", blur);
-            
-            //putText(temp, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
-
-
-            //std::vector<full_object_detection> faces = FaceDetection::detect_shape(pose_model, detector, frame);
-            //FaceDetection::print_shape(frame, faces);
-            
-            //FaceDetection::cv_print_rectangle(detector, frame, pred);
-
-            
             // Check when close webcam
             if (waitKey(1) == 27)
             {
