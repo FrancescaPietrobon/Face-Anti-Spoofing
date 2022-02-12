@@ -1,4 +1,4 @@
-#include "antispoofing_detection.h"
+#include "../include/antispoofing_detection.h"
 
 using namespace cv;
 using namespace std;
@@ -58,10 +58,9 @@ string AntiSpoofingDetection::multiple_prediction(string frames_path, dnn::Net c
 }
 
 
-void AntiSpoofingDetection::print_status(Mat frame, string message, string window_name)
+void AntiSpoofingDetection::print_status(Mat *frame, string message)
 {
-    Mat black = Mat::zeros(Size(frame.cols,frame.rows),CV_8UC1);
+    Mat black = Mat::zeros(Size(frame->cols,frame->rows),CV_8UC1);
     putText(black, message, Point(200,200), FONT_HERSHEY_SIMPLEX, 1, Scalar(255,255,255), 2, LINE_AA);
-    black.copyTo(frame);
-    imshow(window_name, frame);
+    black.copyTo(*frame);
 }

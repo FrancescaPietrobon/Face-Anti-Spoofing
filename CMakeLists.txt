@@ -21,8 +21,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
-add_library(AntiSpoofingDetection STATIC antispoofing_detection.cpp)
-add_library(FaceDetection STATIC face_detection.cpp)
+add_library(AntiSpoofingDetection STATIC src/antispoofing_detection.cpp)
+add_library(FaceDetection STATIC src/face_detection.cpp)
 
 find_package(dlib REQUIRED)
 find_package( OpenCV REQUIRED )

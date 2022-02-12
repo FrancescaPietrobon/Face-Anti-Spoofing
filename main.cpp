@@ -10,8 +10,8 @@
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
 
-#include "antispoofing_detection.h"
-#include "face_detection.h"
+#include "include/antispoofing_detection.h"
+#include "include/face_detection.h"
 
 using namespace std;
 using namespace cv;
@@ -194,13 +194,16 @@ int main(int argc, char* argv[])
             else
             {
                 if (pred == "Null")
-                    AntiSpoofingDetection::print_status(frame, "Performing prediction...", window_name);
+                    AntiSpoofingDetection::print_status(&frame, "Performing prediction...");
+
                 else
-                    AntiSpoofingDetection::print_status(frame, pred, window_name);
+                    AntiSpoofingDetection::print_status(&frame, pred);
+
+                imshow(window_name, frame);
 
                 pred = AntiSpoofingDetection::multiple_prediction(frames_path, cvNet, rf);
-                
             }
+
 
             // Check when close webcam
             if (waitKey(1) == 27)
@@ -208,8 +211,9 @@ int main(int argc, char* argv[])
                 cout << "Esc key is pressed by user. Stoppig the video" << endl;
                 break;
             }
-  
+            
         }
+
         
     }
 
