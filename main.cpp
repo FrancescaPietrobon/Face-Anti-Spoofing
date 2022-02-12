@@ -10,6 +10,9 @@
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
 
+//  #include "GetPot"
+
+#include "include/parameters.h"
 #include "include/antispoofing_detection.h"
 #include "include/face_detection.h"
 
@@ -23,27 +26,40 @@ int main(int argc, char* argv[])
     //windowWidth=cv2.getWindowImageRect("myWindow")[2]
     //windowHeight=cv2.getWindowImageRect("myWindow")[3]
 
-    string frames_path = "/home/fra/Project/Frames/";
+    //GetPot cl(argc, argv);
+
+    /*
+    // Search if -h or --help option are given 
+    if (cl.search(2, "-h", "--help")) printHelp();
+
+    // Search if -v version are given
+    bool verbose = cl.search("-v");
+    
+
+    // Get file with parameter values with option -p filename
+    string filename = cl.follow("src/data.pot", "-p");
+    */
+
+    string file = "../src/data.dat";
+
+    PathsParameters paths(file);
+
+    // Set webcam options
+    //int deviceID = parser("deviceID", 0);         // 0 = open default camera
+    int deviceID = 0;         // 0 = open default camera
+    int apiID = CAP_ANY;      // 0 = autodetect default API
 
     // Load SNN
-    string weights = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb";
-    dnn::Net cvNet = cv::dnn::readNetFromTensorflow(weights);
+    dnn::Net cvNet = cv::dnn::readNetFromTensorflow(paths.SNN_weights);
 
     // Load ML Model
-    Ptr<ml::RTrees> rf = Algorithm::load<ml::RTrees> ("/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml");
+    Ptr<ml::RTrees> rf = Algorithm::load<ml::RTrees> (paths.ML_weights);
 
     // Load face detection and pose estimation models.
     frontal_face_detector detector = get_frontal_face_detector();
     shape_predictor pose_model;
-    deserialize("/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat") >> pose_model;
+    deserialize(paths.face_detect) >> pose_model;
 
-    // Set webcam options
-    int deviceID = 0;         // 0 = open default camera
-    int apiID = CAP_ANY;      // 0 = autodetect default API
-    
-    //string window_name = "Image selected";
-    //namedWindow(window_name); //create a window
-    //imshow(window_name, img);
 
     if (argc > 1)
     {
@@ -186,7 +202,7 @@ int main(int argc, char* argv[])
                 if (!blurred)
                 {
                     // Save frame
-                    imwrite(frames_path + "frame" + std::to_string(i) +".jpg", cropedFrame);
+                    imwrite(paths.frames_path + "frame" + std::to_string(i) +".jpg", cropedFrame);
                     i++;
                 } 
                 imshow(window_name, frame);
@@ -201,7 +217,7 @@ int main(int argc, char* argv[])
 
                 imshow(window_name, frame);
 
-                pred = AntiSpoofingDetection::multiple_prediction(frames_path, cvNet, rf);
+                pred = AntiSpoofingDetection::multiple_prediction(paths.frames_path, cvNet, rf);
             }
 
 
