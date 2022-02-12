@@ -10,9 +10,9 @@
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
 
-//  #include "GetPot"
+#include "GetPot"
 
-#include "include/parameters.h"
+//#include "include/parameters.h"
 #include "include/antispoofing_detection.h"
 #include "include/face_detection.h"
 
@@ -26,141 +26,106 @@ int main(int argc, char* argv[])
     //windowWidth=cv2.getWindowImageRect("myWindow")[2]
     //windowHeight=cv2.getWindowImageRect("myWindow")[3]
 
-    //GetPot cl(argc, argv);
+    string filename = "../src/data.dat";
 
-    /*
-    // Search if -h or --help option are given 
-    if (cl.search(2, "-h", "--help")) printHelp();
+    GetPot parser(filename.c_str());
+    GetPot cl(argc, argv);
 
-    // Search if -v version are given
-    bool verbose = cl.search("-v");
-    
-
-    // Get file with parameter values with option -p filename
-    string filename = cl.follow("src/data.pot", "-p");
-    */
-
-    string file = "../src/data.dat";
-
-    PathsParameters paths(file);
+    string frames_path = parser(frames_path.c_str(), "/home/fra/Project/Frames/");
+    string SNN_weights = parser(SNN_weights.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb");
+    string ML_weights = parser(ML_weights.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml");
+    string face_detect = parser(face_detect.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat");
+    string example = parser(example.c_str(), "/home/fra/Scaricati/2022-02-08-163449.jpg");
 
     // Set webcam options
-    //int deviceID = parser("deviceID", 0);         // 0 = open default camera
-    int deviceID = 0;         // 0 = open default camera
-    int apiID = CAP_ANY;      // 0 = autodetect default API
+    int deviceID = parser("deviceID", 0); // 0 = open default camera
+    int apiID = CAP_ANY;                  // 0 = autodetect default API
 
     // Load SNN
-    dnn::Net cvNet = cv::dnn::readNetFromTensorflow(paths.SNN_weights);
+    dnn::Net cvNet = cv::dnn::readNetFromTensorflow(SNN_weights);
 
     // Load ML Model
-    Ptr<ml::RTrees> rf = Algorithm::load<ml::RTrees> (paths.ML_weights);
+    Ptr<ml::RTrees> rf = Algorithm::load<ml::RTrees> (ML_weights);
 
     // Load face detection and pose estimation models.
     frontal_face_detector detector = get_frontal_face_detector();
     shape_predictor pose_model;
-    deserialize(paths.face_detect) >> pose_model;
+    deserialize(face_detect) >> pose_model;
 
-
-    if (argc > 1)
+    if (cl.search(2, "-e", "--example"))
     {
-        std::string img_path;
+        string img_path = cl.next(example.c_str());
 
-        for (int i = 1; i < argc; ++i)
+        // Read image
+        Mat img = imread(img_path, IMREAD_COLOR);
+
+        // Extract only the face
+        Mat cropedImage = FaceDetection::extract_face_rectangle(detector, img);
+
+        // Check if the face is blurred
+        bool blurred = FaceDetection::blur_detection(cropedImage);
+
+        // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
+        if (!blurred)
         {
-            std::string arg = argv[i];
+            // Make prediction for the face
+            string pred = AntiSpoofingDetection::make_prediction(cropedImage, cvNet, rf);
+            FaceDetection::cv_print_rectangle(detector, img, blurred, pred);
+        }
+        else
+        {
+            // Print the image with prediction (or "Blorred"), dimensions, rectangles of face detected and of face considered to make the prediction
+            FaceDetection::cv_print_rectangle(detector, img, blurred);
+        }
 
-            // If a path to saved image is given, take the prediction for that image
-            if ((arg == "-p") || (arg == "--path"))
+        waitKey(5000);
+
+    }
+    else if (cl.search(2, "-wr", "--webcamrealtime"))
+    {
+        // Open the default video camera
+        VideoCapture cap;
+
+        // Open selected camera using selected API
+        cap.open(deviceID, apiID);
+
+        while (true)
+        {
+            Mat frame;
+            // Read a new frame from video 
+            bool bSuccess = cap.read(frame); 
+
+            // Breaking the while loop if the frames cannot be captured
+            if (bSuccess == false) 
             {
-                if (i + 1 < argc) // Make sure we aren't at the end of argv
-                {
-                    // Extract image path
-                    img_path = argv[++i];
-
-                    // Read image
-                    Mat img = imread(img_path, IMREAD_COLOR);
-
-                    // Extract only the face
-                    Mat cropedImage = FaceDetection::extract_face_rectangle(detector, img);
-
-                    // To print Cropped Image
-                    //imshow( "Cropped Image", cropedImage);
-                    // waitKey(5000);
-
-                    // Check if the face is blurred
-                    bool blurred = FaceDetection::blur_detection(cropedImage);
-
-                    if (blurred)
-                    {
-                        // AGGIUNGI PLOT IMG CON SCRITTA BLURRED IMAGE
-                        std::cerr << "Blurred image." << std::endl;
-                        return 1;
-                    }
-                        
-                    // Make prediction for the face
-                    string pred = AntiSpoofingDetection::make_prediction(cropedImage, cvNet, rf);
-
-                    // Print the image with prediction, dimensions, rectangles of face detected and of face considered to make the prediction
-                    FaceDetection::cv_print_rectangle(detector, img, blurred, pred);
-                    waitKey(5000);
-                    
-                }
-                else // Uh-oh, there was no argument to the destination option.
-                { 
-                    std::cerr << "--path option requires one argument." << std::endl;
-                    return 1;
-                }  
+                cout << "Video camera is disconnected" << endl;
+                cin.get(); //Wait for any key press
+                break;
             }
-            // If a webcam realtime option is selected, make the prediction realtime for each frame 
-            else if ((arg == "-wr") || (arg == "--webcamrealtime"))
-            {
-                // Open the default video camera
-                VideoCapture cap;
 
-                // Open selected camera using selected API
-                cap.open(deviceID, apiID);
+            // Extract only the face
+            Mat cropedImage = FaceDetection::extract_face_rectangle(detector, frame);
 
-                while (true)
-                {
-                    Mat frame;
-                    // Read a new frame from video 
-                    bool bSuccess = cap.read(frame); 
-                    //imshow("Webcam", frame);
-
-                    // Breaking the while loop if the frames cannot be captured
-                    if (bSuccess == false) 
-                    {
-                        cout << "Video camera is disconnected" << endl;
-                        cin.get(); //Wait for any key press
-                        break;
-                    }
-
-                    // Extract only the face
-                    Mat cropedImage = FaceDetection::extract_face_rectangle(detector, frame);
-
-                    // Check if the face is blurred
-                    bool blurred = FaceDetection::blur_detection(cropedImage);
+            // Check if the face is blurred
+            bool blurred = FaceDetection::blur_detection(cropedImage);
                     
-                    // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
-                    if (!blurred)
-                    {
-                        string pred = AntiSpoofingDetection::make_prediction(cropedImage, cvNet, rf);
-                        FaceDetection::cv_print_rectangle(detector, frame, blurred, pred);
-                    }
-                    else
-                        FaceDetection::cv_print_rectangle(detector, frame, blurred);
+            // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
+            if (!blurred)
+            {
+                string pred = AntiSpoofingDetection::make_prediction(cropedImage, cvNet, rf);
+                FaceDetection::cv_print_rectangle(detector, frame, blurred, pred);
+            }
+            else
+                FaceDetection::cv_print_rectangle(detector, frame, blurred);
 
-                    // Check when close webcam
-                    if (waitKey(1) == 27)
-                    {
-                        cout << "Esc key is pressed by user. Stoppig the video" << endl;
-                        break;
-                    }
-                }
+            // Check when close webcam
+            if (waitKey(1) == 27)
+            {
+                cout << "Esc key is pressed by user. Stoppig the video" << endl;
+                break;
             }
         }
     }
-    // If there is no option are selected, collect the frame images and than make the prediction
     else
     {
         // Open the default video camera
@@ -202,7 +167,7 @@ int main(int argc, char* argv[])
                 if (!blurred)
                 {
                     // Save frame
-                    imwrite(paths.frames_path + "frame" + std::to_string(i) +".jpg", cropedFrame);
+                    imwrite(frames_path + "frame" + std::to_string(i) +".jpg", cropedFrame);
                     i++;
                 } 
                 imshow(window_name, frame);
@@ -217,7 +182,7 @@ int main(int argc, char* argv[])
 
                 imshow(window_name, frame);
 
-                pred = AntiSpoofingDetection::multiple_prediction(paths.frames_path, cvNet, rf);
+                pred = AntiSpoofingDetection::multiple_prediction(frames_path, cvNet, rf);
             }
 
 
@@ -227,15 +192,14 @@ int main(int argc, char* argv[])
                 cout << "Esc key is pressed by user. Stoppig the video" << endl;
                 break;
             }
-            
         }
-
-        
     }
 
     return 0;
 
 }
+
+
 
 
 //putText(temp, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));

@@ -208,7 +208,7 @@ bool FaceDetection::blur_detection(Mat img)
     meanStdDev(laplacianImage, mean, stddev, Mat());
     double variance = stddev.val[0] * stddev.val[0];
 
-    double threshold = 6.5;
+    double threshold = 6.5; //6.5 before
 
     bool blurred = true;
 
