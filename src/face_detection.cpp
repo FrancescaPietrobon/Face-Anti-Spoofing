@@ -5,18 +5,7 @@ using namespace std;
 using namespace dlib;
 
 
-cv::Rect FaceDetection::expand_face_rectangle(cv::Rect rect)
-{
-    //Rect(X,Y,Width,Height)
-    //return Rect(max(rect.x - int(rect.width/2), 0), max(rect.y - int(rect.height/2), 0), rect.width * 2, rect.height * 2);
-
-    // CONTROLLA OUT OF BOUNDS!!!
-
-    return Rect(rect.x - 70, rect.y - 70, rect.width + 140, rect.height + 140);
-}
-
-
-Mat FaceDetection::extract_face_rectangle(frontal_face_detector detector, Mat temp)
+Mat FaceDetection::extract_rectangle(frontal_face_detector detector, Mat temp)
 {
     // Detect face in dlib rectangle
     dlib::rectangle faceRectDlib = FaceDetection::detect_rectangle(detector, temp);
@@ -24,22 +13,58 @@ Mat FaceDetection::extract_face_rectangle(frontal_face_detector detector, Mat te
     // Convert dlib rectangle in OpenCV rectangle
     cv::Rect faceRectCV = FaceDetection::dlib_rectangle_to_cv(faceRectDlib);
 
-    cv::Rect ExpfaceRectCV = expand_face_rectangle(faceRectCV);
+    cv::Rect ExpfaceRectCV = expand_rectangle(faceRectCV);
 
     Mat cropedImage = temp(ExpfaceRectCV);
 
-    /* To save cropped image
-    cv::Mat cropped;
-    // Copy the data into new matrix
-    croppedRef.copyTo(cropped);
-    */
-
     return cropedImage;
-
 }
 
 
-void FaceDetection::cv_print_rectangle(frontal_face_detector detector, Mat temp, bool blurred, string pred)
+dlib::rectangle FaceDetection::detect_rectangle(frontal_face_detector detector, Mat temp)
+{
+    // http://dlib.net/webcam_face_pose_ex.cpp.html
+
+    // Make the image bigger by a factor of two.  This is useful since the face detector looks for faces that are about 80 by 80 pixels or larger. 
+    //pyramid_up(temp);
+
+    // Convert OpenCV image format to Dlib's image format
+    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(temp);
+
+    // Detect faces 
+    std::vector<dlib::rectangle> faces = detector(cimg);
+
+    if (faces.size() > 1)
+        std::cerr << "More than one face" << std::endl;
+
+    return faces[0]; 
+}
+
+
+dlib::cv_image<dlib::bgr_pixel> FaceDetection::cv_mat_to_dlib(Mat temp)
+{
+    // Turn OpenCV's Mat into something dlib can deal with
+    auto ipl_img = cvIplImage(temp); //_IplImage type
+    auto cimg = cv_image<bgr_pixel>(&ipl_img); //dlib::cv_image<dlib::bgr_pixel> type
+    return cimg;
+}
+
+
+cv::Rect FaceDetection::dlib_rectangle_to_cv(dlib::rectangle r)
+{
+    return cv::Rect(cv::Point2i(r.left(), r.top()), cv::Point2i(r.right() + 1, r.bottom() + 1));
+}
+
+
+cv::Rect FaceDetection::expand_rectangle(cv::Rect rect)
+{
+    // CONTROLLA OUT OF BOUNDS!!!
+
+    return Rect(rect.x - 70, rect.y - 70, rect.width + 140, rect.height + 140);
+}
+
+
+void FaceDetection::print_rectangle_cv(frontal_face_detector detector, Mat temp, bool blurred, string pred)
 {
     //https://learnopencv.com/face-detection-opencv-dlib-and-deep-learning-c-python/
 
@@ -54,7 +79,7 @@ void FaceDetection::cv_print_rectangle(frontal_face_detector detector, Mat temp,
 	int y2 = faceRect.bottom();
 
     Rect faceRectCV = FaceDetection::dlib_rectangle_to_cv(faceRect);
-    Rect ExpfaceRectCV = FaceDetection::expand_face_rectangle(faceRectCV);
+    Rect ExpfaceRectCV = FaceDetection::expand_rectangle(faceRectCV);
 
     int x = ExpfaceRectCV.x;
 	int y = ExpfaceRectCV.y;
@@ -80,116 +105,6 @@ void FaceDetection::cv_print_rectangle(frontal_face_detector detector, Mat temp,
     imshow( "Image", temp );
     //imwrite("/home/fra/Project/Frames/frame" + std::to_string(j+1) +".jpg", temp);
     
-
-}
-
-dlib::rectangle FaceDetection::detect_rectangle(frontal_face_detector detector, Mat temp)
-{
-    // http://dlib.net/webcam_face_pose_ex.cpp.html
-
-    // Make the image bigger by a factor of two.  This is useful since the face detector looks for faces that are about 80 by 80 pixels or larger. 
-    //pyramid_up(temp);
-
-    // Convert OpenCV image format to Dlib's image format
-    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(temp);
-
-    // Detect faces 
-    std::vector<dlib::rectangle> faces = detector(cimg);
-
-    if (faces.size() > 1)
-        std::cerr << "More than one face" << std::endl;
-
-    return faces[0];
-    
-}
-
-std::vector<full_object_detection> FaceDetection::detect_shape(shape_predictor pose_model, frontal_face_detector detector, Mat temp)
-{
-    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(temp);
-
-    // Detect faces 
-    dlib::rectangle face = FaceDetection::detect_rectangle(detector, temp);
-
-    // Find the pose of each face.
-    std::vector<full_object_detection> shapes;
-
-    shapes.push_back(pose_model(cimg, face));
-
-    return shapes;
-    
-}
-
-
-void FaceDetection::dlib_print_rectangle(Mat img, std::vector<dlib::rectangle> faces, string pred)
-{
-    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(img);
-
-    image_window win;
-    win.clear_overlay();
-    win.set_image(cimg);
-    if (pred == "Null")
-        win.add_overlay(faces);
-    else
-        win.add_overlay(dlib::image_window::overlay_rect(faces[0], dlib::rgb_pixel(0, 0, 255), pred));
-    waitKey(5000);
-
-}
-
-void FaceDetection::print_shape(Mat img, std::vector<full_object_detection> faces)
-{
-    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(img);
-
-    image_window win;
-    win.clear_overlay();
-    win.set_image(cimg);
-    win.add_overlay(render_face_detections(faces));
-    waitKey(100);
-
-}
-
-
-dlib::cv_image<dlib::bgr_pixel> FaceDetection::cv_mat_to_dlib(Mat temp)
-{
-    // Turn OpenCV's Mat into something dlib can deal with
-    auto ipl_img = cvIplImage(temp); //_IplImage type
-    auto cimg = cv_image<bgr_pixel>(&ipl_img); //dlib::cv_image<dlib::bgr_pixel> type
-    return cimg;
-}
-
-
-cv::Rect FaceDetection::dlib_rectangle_to_cv(dlib::rectangle r)
-{
-    return cv::Rect(cv::Point2i(r.left(), r.top()), cv::Point2i(r.right() + 1, r.bottom() + 1));
-}
-
-
-dlib::rectangle FaceDetection::cv_rectangle_to_dlib(cv::Rect r)
-{
-    return dlib::rectangle((long)r.tl().x, (long)r.tl().y, (long)r.br().x - 1, (long)r.br().y - 1);
-}
-
-
-Mat FaceDetection::laplacian_plot(Mat img)
-{
-    //https://docs.opencv.org/3.4/d5/db5/tutorial_laplace_operator.html
-            
-    Mat src, src_gray, dst, abs_dst;
-    int kernel_size = 3;
-    int scale = 1;
-    int delta = 0;
-    int ddepth = CV_16S;
-
-    // Reduce noise by blurring with a Gaussian filter ( kernel size = 3 )
-    GaussianBlur(img, img, Size(3, 3), 0, 0, BORDER_DEFAULT);
-
-    cvtColor(img, src_gray, COLOR_BGR2GRAY); // Convert the image to grayscale
-
-    Laplacian(src_gray, dst, ddepth, kernel_size, scale, delta, BORDER_DEFAULT);
-
-    // converting back to CV_8U
-    convertScaleAbs(dst, abs_dst);
-
-    return abs_dst;
 }
 
 
@@ -198,7 +113,7 @@ bool FaceDetection::blur_detection(Mat img)
     // https://stackoverflow.com/questions/24080123/opencv-with-laplacian-formula-to-detect-image-is-blur-or-not-in-ios
     // https://www.pyimagesearch.com/2015/09/07/blur-detection-with-opencv/
 
-    Mat laplacianImage = FaceDetection::laplacian_plot(img);
+    Mat laplacianImage = FaceDetection::compute_laplacian(img);
 
     Mat gray;
     cvtColor(img, gray, COLOR_BGR2GRAY);
@@ -226,4 +141,88 @@ bool FaceDetection::blur_detection(Mat img)
 }
 
 
+Mat FaceDetection::compute_laplacian(Mat img)
+{
+    //https://docs.opencv.org/3.4/d5/db5/tutorial_laplace_operator.html
+            
+    Mat src, src_gray, dst, abs_dst;
+    int kernel_size = 3;
+    int scale = 1;
+    int delta = 0;
+    int ddepth = CV_16S;
 
+    // Reduce noise by blurring with a Gaussian filter ( kernel size = 3 )
+    GaussianBlur(img, img, Size(3, 3), 0, 0, BORDER_DEFAULT);
+
+    cvtColor(img, src_gray, COLOR_BGR2GRAY); // Convert the image to grayscale
+
+    Laplacian(src_gray, dst, ddepth, kernel_size, scale, delta, BORDER_DEFAULT);
+
+    // converting back to CV_8U
+    convertScaleAbs(dst, abs_dst);
+
+    return abs_dst;
+}
+
+
+
+
+
+
+
+
+/* POSSIBLE USEFUL FUNCTIONS
+
+std::vector<full_object_detection> FaceDetection::detect_shape(shape_predictor pose_model, frontal_face_detector detector, Mat temp)
+{
+    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(temp);
+
+    // Detect faces 
+    dlib::rectangle face = FaceDetection::detect_rectangle(detector, temp);
+
+    // Find the pose of each face.
+    std::vector<full_object_detection> shapes;
+
+    shapes.push_back(pose_model(cimg, face));
+
+    return shapes;
+    
+}
+
+
+void FaceDetection::print_rectangle_dlib(Mat img, std::vector<dlib::rectangle> faces, string pred)
+{
+    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(img);
+
+    image_window win;
+    win.clear_overlay();
+    win.set_image(cimg);
+    if (pred == "Null")
+        win.add_overlay(faces);
+    else
+        win.add_overlay(dlib::image_window::overlay_rect(faces[0], dlib::rgb_pixel(0, 0, 255), pred));
+    waitKey(5000);
+
+}
+
+
+void FaceDetection::print_shape(Mat img, std::vector<full_object_detection> faces)
+{
+    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(img);
+
+    image_window win;
+    win.clear_overlay();
+    win.set_image(cimg);
+    win.add_overlay(render_face_detections(faces));
+    waitKey(100);
+
+}
+
+
+dlib::rectangle FaceDetection::cv_rectangle_to_dlib(cv::Rect r)
+{
+    return dlib::rectangle((long)r.tl().x, (long)r.tl().y, (long)r.br().x - 1, (long)r.br().y - 1);
+}
+
+
+*/

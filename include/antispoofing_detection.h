@@ -17,13 +17,16 @@ using namespace cv;
 using namespace std;
 using namespace dlib;
 
-
-namespace AntiSpoofingDetection
+class AntiSpoofingDetection
 {
-    string make_prediction(Mat img, dnn::Net cvNet, Ptr<ml::RTrees> svm);
-    float value_prediction(Mat img, dnn::Net cvNet, Ptr<ml::RTrees> svm);
-    string multiple_prediction(string frames_path, dnn::Net cvNet, Ptr<ml::RTrees> svm);
-    void print_status(Mat *frame, string message);
+    public:
+        string single_prediction(Mat img, dnn::Net snn, Ptr<ml::RTrees> ml); 
+        string multiple_prediction(string frames_path, dnn::Net snn, Ptr<ml::RTrees> ml);
+        void print_status(Mat *frame, string message);
+    private:
+        float value_prediction(Mat img, dnn::Net snn, Ptr<ml::RTrees> ml);
+
 };
+
 
 #endif

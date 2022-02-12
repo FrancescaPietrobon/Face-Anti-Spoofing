@@ -25,6 +25,8 @@ int main(int argc, char* argv[])
 {
     //windowWidth=cv2.getWindowImageRect("myWindow")[2]
     //windowHeight=cv2.getWindowImageRect("myWindow")[3]
+    AntiSpoofingDetection antispoofing_detector;
+    FaceDetection face_detector;
 
     string filename = "../src/data.dat";
 
@@ -60,22 +62,22 @@ int main(int argc, char* argv[])
         Mat img = imread(img_path, IMREAD_COLOR);
 
         // Extract only the face
-        Mat cropedImage = FaceDetection::extract_face_rectangle(detector, img);
+        Mat cropedImage = face_detector.extract_rectangle(detector, img);
 
         // Check if the face is blurred
-        bool blurred = FaceDetection::blur_detection(cropedImage);
+        bool blurred = face_detector.blur_detection(cropedImage);
 
         // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
         if (!blurred)
         {
             // Make prediction for the face
-            string pred = AntiSpoofingDetection::make_prediction(cropedImage, cvNet, rf);
-            FaceDetection::cv_print_rectangle(detector, img, blurred, pred);
+            string pred = antispoofing_detector.single_prediction(cropedImage, cvNet, rf);
+            face_detector.print_rectangle_cv(detector, img, blurred, pred);
         }
         else
         {
             // Print the image with prediction (or "Blorred"), dimensions, rectangles of face detected and of face considered to make the prediction
-            FaceDetection::cv_print_rectangle(detector, img, blurred);
+            face_detector.print_rectangle_cv(detector, img, blurred);
         }
 
         waitKey(5000);
@@ -104,19 +106,19 @@ int main(int argc, char* argv[])
             }
 
             // Extract only the face
-            Mat cropedImage = FaceDetection::extract_face_rectangle(detector, frame);
+            Mat cropedImage = face_detector.extract_rectangle(detector, frame);
 
             // Check if the face is blurred
-            bool blurred = FaceDetection::blur_detection(cropedImage);
+            bool blurred = face_detector.blur_detection(cropedImage);
                     
             // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
             if (!blurred)
             {
-                string pred = AntiSpoofingDetection::make_prediction(cropedImage, cvNet, rf);
-                FaceDetection::cv_print_rectangle(detector, frame, blurred, pred);
+                string pred = antispoofing_detector.single_prediction(cropedImage, cvNet, rf);
+                face_detector.print_rectangle_cv(detector, frame, blurred, pred);
             }
             else
-                FaceDetection::cv_print_rectangle(detector, frame, blurred);
+                face_detector.print_rectangle_cv(detector, frame, blurred);
 
             // Check when close webcam
             if (waitKey(1) == 27)
@@ -157,11 +159,11 @@ int main(int argc, char* argv[])
                 }
 
                 // Extract only the face
-                Mat cropedFrame = FaceDetection::extract_face_rectangle(detector, frame);
+                Mat cropedFrame = face_detector.extract_rectangle(detector, frame);
                 
                 
                 // Check if the face is blurred
-                bool blurred = FaceDetection::blur_detection(cropedFrame);
+                bool blurred = face_detector.blur_detection(cropedFrame);
                 
                 
                 if (!blurred)
@@ -175,14 +177,14 @@ int main(int argc, char* argv[])
             else
             {
                 if (pred == "Null")
-                    AntiSpoofingDetection::print_status(&frame, "Performing prediction...");
+                    antispoofing_detector.print_status(&frame, "Performing prediction...");
 
                 else
-                    AntiSpoofingDetection::print_status(&frame, pred);
+                    antispoofing_detector.print_status(&frame, pred);
 
                 imshow(window_name, frame);
 
-                pred = AntiSpoofingDetection::multiple_prediction(frames_path, cvNet, rf);
+                pred = antispoofing_detector.multiple_prediction(frames_path, cvNet, rf);
             }
 
 
@@ -205,7 +207,7 @@ int main(int argc, char* argv[])
 //putText(temp, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
 
 /* To print laplacian image
-    Mat abs_dst = FaceDetection::laplacian_plot(frame);
+    Mat abs_dst = face_detector.compute_laplacian(frame);
     const char* window_name = "Laplace Demo";
     imshow(window_name, abs_dst);
 */
@@ -213,14 +215,14 @@ int main(int argc, char* argv[])
 
 /* To print rectangle and shape of the face detected
     // to extract rectangle
-    std::vector<dlib::rectangle> faces = FaceDetection::detect_rectangle(detector, img);
+    std::vector<dlib::rectangle> faces = face_detector.detect_rectangle(detector, img);
 
     // to extract face
-    //std::vector<full_object_detection> faces = FaceDetection::detect_shape(pose_model, detector, img);
+    //std::vector<full_object_detection> faces = face_detector.detect_shape(pose_model, detector, img);
 
-    FaceDetection::dlib_print_rectangle(img, faces, output);
-    //FaceDetection::cv_print_rectangle(detector, img);
-    //FaceDetection::print_shape(img, faces);
+    face_detector.print_rectangle_dlib(img, faces, output);
+    //face_detector.print_rectangle_cv(detector, img);
+    //face_detector.print_shape(img, faces);
 */
 
 
