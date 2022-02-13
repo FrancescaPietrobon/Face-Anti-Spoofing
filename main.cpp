@@ -15,16 +15,70 @@
 //#include "include/parameters.h"
 #include "include/antispoofing_detection.h"
 #include "include/face_detection.h"
+#include "include/final_prediction.h"
 
 using namespace std;
 using namespace cv;
 using namespace dlib;
 
 
+
+void predict_image(string img_path, frontal_face_detector detector, dnn::Net snn, Ptr<ml::RTrees> ml, AntiSpoofingDetection antispoofing_detector, FaceDetection face_detector)
+{
+    Mat img = imread(img_path, IMREAD_COLOR);
+
+    // Extract only the face
+    Mat cropedImage = face_detector.extract_rectangle(detector, img);
+
+    // Check if the face is blurred
+    bool blurred = face_detector.blur_detection(cropedImage);
+
+    // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
+    if (!blurred)
+    {
+        // Make prediction for the face
+        string pred = antispoofing_detector.single_prediction(cropedImage, snn, ml);
+        face_detector.print_rectangle_cv(detector, img, blurred, pred);
+    }
+    else
+    {
+        // Print the image with prediction (or "Blorred"), dimensions, rectangles of face detected and of face considered to make the prediction
+        face_detector.print_rectangle_cv(detector, img, blurred);
+    }
+} 
+
+
+bool camera_disconnection(bool bSuccess)
+{
+    // Breaking the while loop if the frames cannot be captured
+    if (bSuccess == false) 
+    {
+        cout << "Video camera is disconnected" << endl;
+        cin.get(); //Wait for any key press
+        return true;
+    }
+    return false;
+}
+
+
+bool close_webcam()
+{
+    if (waitKey(1) == 27)
+    {
+        cout << "Esc key is pressed by user. Stoppig the video" << endl;
+        return true;
+    }
+    return false;
+}
+
+
+
+
+
+
 int main(int argc, char* argv[])
 {
-    //windowWidth=cv2.getWindowImageRect("myWindow")[2]
-    //windowHeight=cv2.getWindowImageRect("myWindow")[3]
+
     AntiSpoofingDetection antispoofing_detector;
     FaceDetection face_detector;
 
@@ -44,41 +98,24 @@ int main(int argc, char* argv[])
     int apiID = CAP_ANY;                  // 0 = autodetect default API
 
     // Load SNN
-    dnn::Net cvNet = cv::dnn::readNetFromTensorflow(SNN_weights);
+    dnn::Net snn = cv::dnn::readNetFromTensorflow(SNN_weights);
 
     // Load ML Model
-    Ptr<ml::RTrees> rf = Algorithm::load<ml::RTrees> (ML_weights);
+    Ptr<ml::RTrees> ml = Algorithm::load<ml::RTrees> (ML_weights);
 
     // Load face detection and pose estimation models.
     frontal_face_detector detector = get_frontal_face_detector();
     shape_predictor pose_model;
     deserialize(face_detect) >> pose_model;
 
+
     if (cl.search(2, "-e", "--example"))
     {
+        // Extract path
         string img_path = cl.next(example.c_str());
 
-        // Read image
-        Mat img = imread(img_path, IMREAD_COLOR);
-
-        // Extract only the face
-        Mat cropedImage = face_detector.extract_rectangle(detector, img);
-
-        // Check if the face is blurred
-        bool blurred = face_detector.blur_detection(cropedImage);
-
-        // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
-        if (!blurred)
-        {
-            // Make prediction for the face
-            string pred = antispoofing_detector.single_prediction(cropedImage, cvNet, rf);
-            face_detector.print_rectangle_cv(detector, img, blurred, pred);
-        }
-        else
-        {
-            // Print the image with prediction (or "Blorred"), dimensions, rectangles of face detected and of face considered to make the prediction
-            face_detector.print_rectangle_cv(detector, img, blurred);
-        }
+        // Make the prediction
+        predict_image(img_path, detector, snn, ml, antispoofing_detector, face_detector);
 
         waitKey(5000);
 
@@ -94,38 +131,30 @@ int main(int argc, char* argv[])
         while (true)
         {
             Mat frame;
+
             // Read a new frame from video 
             bool bSuccess = cap.read(frame); 
 
             // Breaking the while loop if the frames cannot be captured
-            if (bSuccess == false) 
-            {
-                cout << "Video camera is disconnected" << endl;
-                cin.get(); //Wait for any key press
-                break;
-            }
+            if (camera_disconnection(bSuccess)) break;
 
             // Extract only the face
-            Mat cropedImage = face_detector.extract_rectangle(detector, frame);
-
+            Mat cropedFrame = face_detector.extract_rectangle(detector, frame);
+                               
             // Check if the face is blurred
-            bool blurred = face_detector.blur_detection(cropedImage);
+            bool blurred = face_detector.blur_detection(cropedFrame);
                     
             // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
             if (!blurred)
             {
-                string pred = antispoofing_detector.single_prediction(cropedImage, cvNet, rf);
+                string pred = antispoofing_detector.single_prediction(cropedFrame, snn, ml);
                 face_detector.print_rectangle_cv(detector, frame, blurred, pred);
             }
             else
                 face_detector.print_rectangle_cv(detector, frame, blurred);
 
             // Check when close webcam
-            if (waitKey(1) == 27)
-            {
-                cout << "Esc key is pressed by user. Stoppig the video" << endl;
-                break;
-            }
+            if (close_webcam()) break;
         }
     }
     else
@@ -151,20 +180,13 @@ int main(int argc, char* argv[])
                 bool bSuccess = cap.read(frame);
 
                 // Breaking the while loop if the frames cannot be captured
-                if (bSuccess == false) 
-                {
-                    cout << "Video camera is disconnected" << endl;
-                    cin.get(); //Wait for any key press
-                    break;
-                }
+                if (camera_disconnection(bSuccess)) break;
 
                 // Extract only the face
                 Mat cropedFrame = face_detector.extract_rectangle(detector, frame);
-                
-                
+                                           
                 // Check if the face is blurred
                 bool blurred = face_detector.blur_detection(cropedFrame);
-                
                 
                 if (!blurred)
                 {
@@ -184,16 +206,11 @@ int main(int argc, char* argv[])
 
                 imshow(window_name, frame);
 
-                pred = antispoofing_detector.multiple_prediction(frames_path, cvNet, rf);
+                pred = antispoofing_detector.multiple_prediction(frames_path, snn, ml);
             }
-
 
             // Check when close webcam
-            if (waitKey(1) == 27)
-            {
-                cout << "Esc key is pressed by user. Stoppig the video" << endl;
-                break;
-            }
+            if (close_webcam()) break;
         }
     }
 
@@ -203,6 +220,36 @@ int main(int argc, char* argv[])
 
 
 
+
+
+/* WRONG
+bool read_and_check(VideoCapture cap, Mat frame, frontal_face_detector detector, AntiSpoofingDetection antispoofing_detector, FaceDetection face_detector)
+{
+    // Read a new frame from video
+    bool bSuccess = cap.read(frame);
+
+    // Breaking the while loop if the frames cannot be captured
+    if (bSuccess == false) 
+    {
+        cout << "Video camera is disconnected" << endl;
+        cin.get(); //Wait for any key press
+        //break;
+    }
+
+    // Extract only the face
+    Mat cropedFrame = face_detector.extract_rectangle(detector, frame);
+                
+                
+    // Check if the face is blurred
+    bool blurred = face_detector.blur_detection(cropedFrame);
+    
+    return blurred;
+}
+*/
+
+
+//windowWidth=cv2.getWindowImageRect("myWindow")[2]
+//windowHeight=cv2.getWindowImageRect("myWindow")[3]
 
 //putText(temp, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
 
