@@ -13,16 +13,27 @@
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
 
+#include "../include/antispoofing_detection.h"
+#include "../include/face_detection.h"
+
 using namespace cv;
 using namespace std;
 using namespace dlib;
 
 
-class FinalPrediction: public AntiSpoofingDetection, public FaceDetection
+class FinalPrediction
 {
     public:
-        void predict_image(string img_path, frontal_face_detector detector, dnn::Net snn, Ptr<ml::RTrees> ml);
-
+        FinalPrediction(FaceDetection face_detector, AntiSpoofingDetection antispoofing_detector);
+        void predict_image();
+        int predict_images(VideoCapture cap, int n_img, string frames_path);
+        int predict_realtime(VideoCapture cap);
+        FaceDetection face_detector;
+        AntiSpoofingDetection antispoofing_detector;
+    private:
+        bool camera_disconnection(bool bSuccess);
+        bool close_webcam();
+        
 };
 
 

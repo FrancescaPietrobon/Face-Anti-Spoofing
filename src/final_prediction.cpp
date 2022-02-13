@@ -7,28 +7,123 @@ using namespace std;
 using namespace dlib;       
         
  
-void FinalPrediction::predict_image(string img_path, frontal_face_detector detector, dnn::Net snn, Ptr<ml::RTrees> ml)
+FinalPrediction::FinalPrediction(FaceDetection _face_detector, AntiSpoofingDetection _antispoofing_detector):
+face_detector(_face_detector), antispoofing_detector(_antispoofing_detector) {};
+
+
+void FinalPrediction::predict_image()
 {
-
-    Mat img = imread(img_path, IMREAD_COLOR);
-
     // Extract only the face
-    Mat cropedImage = FinalPrediction::extract_rectangle(detector, img);
-
-    // Check if the face is blurred
-    bool blurred = FinalPrediction::blur_detection(cropedImage);
+    antispoofing_detector.face = face_detector.extract_rectangle();
 
     // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
-    if (!blurred)
+    if (!face_detector.blur_detection())
     {
         // Make prediction for the face
-        string pred = FinalPrediction::single_prediction(cropedImage, snn, ml);
-        FinalPrediction::print_rectangle_cv(detector, img, blurred, pred);
+        face_detector.print_rectangle_cv(antispoofing_detector.single_prediction());
     }
     else
     {
         // Print the image with prediction (or "Blorred"), dimensions, rectangles of face detected and of face considered to make the prediction
-        FinalPrediction::print_rectangle_cv(detector, img, blurred);
+        face_detector.print_rectangle_cv();
+    }   
+}
+
+
+
+int FinalPrediction::predict_images(VideoCapture cap, int n_img, string frames_path)
+{
+    string window_name = "Webcam";
+
+    int i = 1;
+
+    while (true)
+    {
+        // Until the decided number of frames is not reached collect frames
+        if (i < n_img)
+        {
+            // Read a new frame from video
+            bool bSuccess = cap.read(face_detector.img);
+
+            // Breaking the while loop if the frames cannot be captured
+            if (FinalPrediction::camera_disconnection(bSuccess)) return 1;
+
+            // Extract only the face
+            antispoofing_detector.face = face_detector.extract_rectangle();
+                                           
+            // Check if the face is blurred 
+            if (!face_detector.blur_detection())
+            {
+                // Save frame
+                imwrite(frames_path + "frame" + std::to_string(i) +".jpg", antispoofing_detector.face);
+                i++;
+            } 
+            imshow(window_name, face_detector.img);
+        }
+        else
+        {
+            if (antispoofing_detector.pred == "Null")
+                antispoofing_detector.print_status(&face_detector.img, "Performing prediction...");
+            else
+                antispoofing_detector.print_status(&face_detector.img, antispoofing_detector.pred);
+
+            imshow(window_name, face_detector.img);
+
+            antispoofing_detector.pred = antispoofing_detector.multiple_prediction(frames_path);
+        }
+
+        // Check when close webcam
+        if (FinalPrediction::close_webcam()) return 1;
     }
-} 
+    return 0;
+}
+
+
+int FinalPrediction::predict_realtime(VideoCapture cap)
+{
+    while (true)
+    {
+        // Read a new frame from video 
+        bool bSuccess = cap.read(face_detector.img); 
+
+        // Breaking the while loop if the frames cannot be captured
+        if (FinalPrediction::camera_disconnection(bSuccess)) return 1;
+            
+        // Make the prediction
+        FinalPrediction::predict_image();
+
+        // Check when close webcam
+        if (FinalPrediction::close_webcam()) return 1;
+    }
+    return 0;
+}
+
+
+
+bool FinalPrediction::camera_disconnection(bool bSuccess)
+{
+    // Breaking the while loop if the frames cannot be captured
+    if (bSuccess == false) 
+    {
+        cout << "Video camera is disconnected" << endl;
+        cin.get(); //Wait for any key press
+        return true;
+    }
+    return false;
+}
+
+
+bool FinalPrediction::close_webcam()
+{
+    if (waitKey(1) == 27)
+    {
+        cout << "Esc key is pressed by user. Stoppig the video" << endl;
+        return true;
+    }
+    return false;
+}
+
+
+
+
         

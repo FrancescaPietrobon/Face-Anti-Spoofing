@@ -5,8 +5,8 @@ using namespace std;
 using namespace dlib;
 
 
-FaceDetection::FaceDetection(frontal_face_detector _detector, Mat _img, Mat _cropedImage):
-detector(_detector), img(_img), cropedImage(_cropedImage) {};
+FaceDetection::FaceDetection(frontal_face_detector _detector, Mat _img, Mat _cropedImage, bool _blurred):
+detector(_detector), img(_img), cropedImage(_cropedImage), blurred(_blurred) {};
 
 
 Mat FaceDetection::extract_rectangle()
@@ -68,7 +68,7 @@ cv::Rect FaceDetection::expand_rectangle(cv::Rect rect)
 }
 
 
-void FaceDetection::print_rectangle_cv(bool blurred, string pred)
+void FaceDetection::print_rectangle_cv(string pred)
 {
     //https://learnopencv.com/face-detection-opencv-dlib-and-deep-learning-c-python/
 
@@ -127,9 +127,9 @@ bool FaceDetection::blur_detection()
     meanStdDev(laplacianImage, mean, stddev, Mat());
     double variance = stddev.val[0] * stddev.val[0];
 
-    double threshold = 6.5; //6.5 before
+    double threshold = 5.5; //6.5 before
 
-    bool blurred = true;
+    blurred = true;
 
     if (variance >= threshold)
         blurred = false;

@@ -5,8 +5,8 @@ using namespace std;
 using namespace dlib;
 
 
-AntiSpoofingDetection::AntiSpoofingDetection(Mat _img, dnn::Net _snn, Ptr<ml::RTrees> _ml):
-img(_img), snn(_snn), ml(_ml) {};
+AntiSpoofingDetection::AntiSpoofingDetection(Mat _face, dnn::Net _snn, Ptr<ml::RTrees> _ml, string _pred): //CONTROLLA _pred
+face(_face), snn(_snn), ml(_ml), pred("Null") {};
 
 
 string AntiSpoofingDetection::single_prediction()
@@ -27,7 +27,7 @@ float AntiSpoofingDetection::value_prediction()
 {
     // SNN prediction
     //image, output size, mean values to subtract from channels, swap first and last channels, cropped after resize or not, depth of output blob
-    Mat blob = dnn::blobFromImage(img, 1, Size(256, 256), Scalar(0,0,0), true, false, CV_32F);
+    Mat blob = dnn::blobFromImage(face, 1, Size(256, 256), Scalar(0,0,0), true, false, CV_32F);
     snn.setInput(blob);
     Mat features = snn.forward();
 
@@ -45,7 +45,7 @@ string AntiSpoofingDetection::multiple_prediction(string frames_path)
     for (int i=1; i<50; i++)
     {
         string frame = frames_path + "frame" + std::to_string(i) +".jpg";
-        Mat img = imread(frame, IMREAD_COLOR);
+        Mat face = imread(frame, IMREAD_COLOR);
         float prediction = AntiSpoofingDetection::value_prediction();
         if (prediction == 0)
             real += 1;

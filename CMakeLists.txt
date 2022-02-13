@@ -23,7 +23,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
 add_library(AntiSpoofingDetection src/antispoofing_detection.cpp)
 add_library(FaceDetection src/face_detection.cpp)
-#add_library(Prediction src/final_prediction.cpp)
+add_library(Prediction src/final_prediction.cpp)
 #add_library(Parameters src/parameters.cpp)
 
 find_package(OpenCV REQUIRED)
@@ -38,6 +38,6 @@ target_link_libraries(FaceAntiSpoofing ${OpenCV_LIBS} )
 target_link_libraries(FaceAntiSpoofing ${dlib_LIBS})
 target_link_libraries(FaceAntiSpoofing AntiSpoofingDetection)
 target_link_libraries(FaceAntiSpoofing FaceDetection)
-#target_link_libraries(FaceAntiSpoofing Prediction)
+target_link_libraries(FaceAntiSpoofing Prediction)
 #target_link_libraries(FaceAntiSpoofing Parameters)
 

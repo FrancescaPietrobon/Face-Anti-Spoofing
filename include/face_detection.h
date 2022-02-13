@@ -21,12 +21,13 @@ using namespace dlib;
 class FaceDetection
 {
     public:
-        FaceDetection(frontal_face_detector detector, Mat img, Mat cropedImage);
+        FaceDetection(frontal_face_detector detector, Mat img, Mat cropedImage, bool blurred);
         Mat extract_rectangle();
         bool blur_detection();
-        void print_rectangle_cv(bool blurred, string pred = "Null");
+        void print_rectangle_cv(string pred = "Null");
         Mat cropedImage;
         Mat img;
+        bool blurred;
 
     private:
         dlib::rectangle detect_rectangle();
