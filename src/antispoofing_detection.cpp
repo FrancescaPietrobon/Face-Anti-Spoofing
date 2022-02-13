@@ -5,10 +5,13 @@ using namespace std;
 using namespace dlib;
 
 
+AntiSpoofingDetection::AntiSpoofingDetection(Mat _img, dnn::Net _snn, Ptr<ml::RTrees> _ml):
+img(_img), snn(_snn), ml(_ml) {};
 
-string AntiSpoofingDetection::single_prediction(Mat img, dnn::Net snn, Ptr<ml::RTrees> ml)
+
+string AntiSpoofingDetection::single_prediction()
 {
-    float prediction = AntiSpoofingDetection::value_prediction(img, snn, ml);
+    float prediction = AntiSpoofingDetection::value_prediction();
 
     string output;
 
@@ -20,7 +23,7 @@ string AntiSpoofingDetection::single_prediction(Mat img, dnn::Net snn, Ptr<ml::R
     return output;
 }
 
-float AntiSpoofingDetection::value_prediction(Mat img, dnn::Net snn, Ptr<ml::RTrees> ml)
+float AntiSpoofingDetection::value_prediction()
 {
     // SNN prediction
     //image, output size, mean values to subtract from channels, swap first and last channels, cropped after resize or not, depth of output blob
@@ -34,7 +37,7 @@ float AntiSpoofingDetection::value_prediction(Mat img, dnn::Net snn, Ptr<ml::RTr
     return prediction;
 }
 
-string AntiSpoofingDetection::multiple_prediction(string frames_path, dnn::Net snn, Ptr<ml::RTrees> ml)
+string AntiSpoofingDetection::multiple_prediction(string frames_path)
 {
     int real = 0;
     int fake = 0;
@@ -43,7 +46,7 @@ string AntiSpoofingDetection::multiple_prediction(string frames_path, dnn::Net s
     {
         string frame = frames_path + "frame" + std::to_string(i) +".jpg";
         Mat img = imread(frame, IMREAD_COLOR);
-        float prediction = AntiSpoofingDetection::value_prediction(img, snn, ml);
+        float prediction = AntiSpoofingDetection::value_prediction();
         if (prediction == 0)
             real += 1;
         else

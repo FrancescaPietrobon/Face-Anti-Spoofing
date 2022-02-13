@@ -5,34 +5,38 @@ using namespace std;
 using namespace dlib;
 
 
-Mat FaceDetection::extract_rectangle(frontal_face_detector detector, Mat temp)
+FaceDetection::FaceDetection(frontal_face_detector _detector, Mat _img, Mat _cropedImage):
+detector(_detector), img(_img), cropedImage(_cropedImage) {};
+
+
+Mat FaceDetection::extract_rectangle()
 {
     // Detect face in dlib rectangle
-    dlib::rectangle faceRectDlib = FaceDetection::detect_rectangle(detector, temp);
+    dlib::rectangle faceRectDlib = FaceDetection::detect_rectangle();
 
     // Convert dlib rectangle in OpenCV rectangle
     cv::Rect faceRectCV = FaceDetection::dlib_rectangle_to_cv(faceRectDlib);
 
     cv::Rect ExpfaceRectCV = expand_rectangle(faceRectCV);
 
-    Mat cropedImage = temp(ExpfaceRectCV);
+    cropedImage = img(ExpfaceRectCV);
 
     return cropedImage;
 }
 
 
-dlib::rectangle FaceDetection::detect_rectangle(frontal_face_detector detector, Mat temp)
+dlib::rectangle FaceDetection::detect_rectangle()
 {
     // http://dlib.net/webcam_face_pose_ex.cpp.html
 
     // Make the image bigger by a factor of two.  This is useful since the face detector looks for faces that are about 80 by 80 pixels or larger. 
-    //pyramid_up(temp);
+    //pyramid_up(img);
 
     // Convert OpenCV image format to Dlib's image format
-    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(temp);
+    dlib::cv_image<dlib::bgr_pixel> cv_img = FaceDetection::cv_mat_to_dlib();
 
     // Detect faces 
-    std::vector<dlib::rectangle> faces = detector(cimg);
+    std::vector<dlib::rectangle> faces = detector(cv_img);
 
     if (faces.size() > 1)
         std::cerr << "More than one face" << std::endl;
@@ -41,12 +45,12 @@ dlib::rectangle FaceDetection::detect_rectangle(frontal_face_detector detector, 
 }
 
 
-dlib::cv_image<dlib::bgr_pixel> FaceDetection::cv_mat_to_dlib(Mat temp)
+dlib::cv_image<dlib::bgr_pixel> FaceDetection::cv_mat_to_dlib()
 {
     // Turn OpenCV's Mat into something dlib can deal with
-    auto ipl_img = cvIplImage(temp); //_IplImage type
-    auto cimg = cv_image<bgr_pixel>(&ipl_img); //dlib::cv_image<dlib::bgr_pixel> type
-    return cimg;
+    auto ipl_img = cvIplImage(img); //_IplImage type
+    auto cv_img = cv_image<bgr_pixel>(&ipl_img); //dlib::cv_image<dlib::bgr_pixel> type
+    return cv_img;
 }
 
 
@@ -64,12 +68,12 @@ cv::Rect FaceDetection::expand_rectangle(cv::Rect rect)
 }
 
 
-void FaceDetection::print_rectangle_cv(frontal_face_detector detector, Mat temp, bool blurred, string pred)
+void FaceDetection::print_rectangle_cv(bool blurred, string pred)
 {
     //https://learnopencv.com/face-detection-opencv-dlib-and-deep-learning-c-python/
 
     // Detect faces in the image
-	dlib::rectangle faceRect = FaceDetection::detect_rectangle(detector, temp);
+	dlib::rectangle faceRect = FaceDetection::detect_rectangle();
 
     int frameHeight = 100;
 
@@ -87,36 +91,36 @@ void FaceDetection::print_rectangle_cv(frontal_face_detector detector, Mat temp,
 	int height = ExpfaceRectCV.height;
 
     // Plot face detected
-	cv::rectangle(temp, Point(x1, y1), Point(x2, y2), Scalar(0, 255, 0), (int)(frameHeight/150.0), 4);
+	cv::rectangle(img, Point(x1, y1), Point(x2, y2), Scalar(0, 255, 0), (int)(frameHeight/150.0), 4);
 
     // Plot face detected expanded
-    cv::rectangle(temp, Point(x, y), Point(x + width, y + height), Scalar(255,0,0), (int)(frameHeight/150.0), 4);
+    cv::rectangle(img, Point(x, y), Point(x + width, y + height), Scalar(255,0,0), (int)(frameHeight/150.0), 4);
 
     // Plot result of the prediction if exists otherwise plot blurred if the image is blurred
     if (pred != "Null")
-        putText(temp, pred,  Point(x1 + int((x2-x1)/2) - 5, y1 - 3), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+        putText(img, pred,  Point(x1 + int((x2-x1)/2) - 5, y1 - 3), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
     else if (blurred)
-        putText(temp, "Blurred",  Point(x1 + int((x2-x1)/2) - 5, y1 - 3), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+        putText(img, "Blurred",  Point(x1 + int((x2-x1)/2) - 5, y1 - 3), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
 
     // Plot dimension of the rectangle
     string dim = to_string(x2-x1) + string("x") + to_string(y2-y1);
-    putText(temp, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+    putText(img, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
 
-    imshow( "Image", temp );
+    imshow( "Image", img );
     //imwrite("/home/fra/Project/Frames/frame" + std::to_string(j+1) +".jpg", temp);
     
 }
 
 
-bool FaceDetection::blur_detection(Mat img)
+bool FaceDetection::blur_detection()
 {
     // https://stackoverflow.com/questions/24080123/opencv-with-laplacian-formula-to-detect-image-is-blur-or-not-in-ios
     // https://www.pyimagesearch.com/2015/09/07/blur-detection-with-opencv/
 
-    Mat laplacianImage = FaceDetection::compute_laplacian(img);
+    Mat laplacianImage = FaceDetection::compute_laplacian();
 
     Mat gray;
-    cvtColor(img, gray, COLOR_BGR2GRAY);
+    cvtColor(cropedImage, gray, COLOR_BGR2GRAY);
 
     Laplacian(gray, laplacianImage, CV_64F);
     Scalar mean, stddev;
@@ -141,7 +145,7 @@ bool FaceDetection::blur_detection(Mat img)
 }
 
 
-Mat FaceDetection::compute_laplacian(Mat img)
+Mat FaceDetection::compute_laplacian()
 {
     //https://docs.opencv.org/3.4/d5/db5/tutorial_laplace_operator.html
             
@@ -152,9 +156,9 @@ Mat FaceDetection::compute_laplacian(Mat img)
     int ddepth = CV_16S;
 
     // Reduce noise by blurring with a Gaussian filter ( kernel size = 3 )
-    GaussianBlur(img, img, Size(3, 3), 0, 0, BORDER_DEFAULT);
+    GaussianBlur(cropedImage, cropedImage, Size(3, 3), 0, 0, BORDER_DEFAULT);
 
-    cvtColor(img, src_gray, COLOR_BGR2GRAY); // Convert the image to grayscale
+    cvtColor(cropedImage, src_gray, COLOR_BGR2GRAY); // Convert the image to grayscale
 
     Laplacian(src_gray, dst, ddepth, kernel_size, scale, delta, BORDER_DEFAULT);
 

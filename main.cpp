@@ -22,7 +22,7 @@ using namespace cv;
 using namespace dlib;
 
 
-
+/*
 void predict_image(string img_path, frontal_face_detector detector, dnn::Net snn, Ptr<ml::RTrees> ml, AntiSpoofingDetection antispoofing_detector, FaceDetection face_detector)
 {
     Mat img = imread(img_path, IMREAD_COLOR);
@@ -45,7 +45,41 @@ void predict_image(string img_path, frontal_face_detector detector, dnn::Net snn
         // Print the image with prediction (or "Blorred"), dimensions, rectangles of face detected and of face considered to make the prediction
         face_detector.print_rectangle_cv(detector, img, blurred);
     }
-} 
+}
+*/ 
+
+
+void predict_image(string img_path, frontal_face_detector detector, dnn::Net snn, Ptr<ml::RTrees> ml)
+{
+    Mat img = imread(img_path, IMREAD_COLOR);
+    Mat cropedImage;
+
+    FaceDetection face_detector(detector, img, cropedImage);
+
+    // Extract only the face
+    cropedImage = face_detector.extract_rectangle();
+
+    face_detector.cropedImage = cropedImage;
+
+    // Check if the face is blurred
+    bool blurred = face_detector.blur_detection();
+
+    AntiSpoofingDetection antispoofing_detector(cropedImage, snn, ml);
+
+    // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
+    if (!blurred)
+    {
+        // Make prediction for the face
+        string pred = antispoofing_detector.single_prediction();
+        face_detector.print_rectangle_cv(blurred, pred);
+    }
+    else
+    {
+        // Print the image with prediction (or "Blorred"), dimensions, rectangles of face detected and of face considered to make the prediction
+        face_detector.print_rectangle_cv(blurred);
+    }
+}
+
 
 
 bool camera_disconnection(bool bSuccess)
@@ -79,23 +113,29 @@ bool close_webcam()
 int main(int argc, char* argv[])
 {
 
-    AntiSpoofingDetection antispoofing_detector;
-    FaceDetection face_detector;
+    //AntiSpoofingDetection antispoofing_detector;
+    //FaceDetection face_detector;
 
-    string filename = "../src/data.dat";
+    //string filename = "../src/data.dat";
 
-    GetPot parser(filename.c_str());
+    //GetPot parser(filename.c_str());
     GetPot cl(argc, argv);
 
-    string frames_path = parser(frames_path.c_str(), "/home/fra/Project/Frames/");
-    string SNN_weights = parser(SNN_weights.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb");
-    string ML_weights = parser(ML_weights.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml");
-    string face_detect = parser(face_detect.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat");
-    string example = parser(example.c_str(), "/home/fra/Scaricati/2022-02-08-163449.jpg");
+    //string frames_path = parser(frames_path.c_str(), "/home/fra/Project/Frames/");
+    string frames_path = "/home/fra/Project/Frames/";
+    //string SNN_weights = parser(SNN_weights.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb");
+    string SNN_weights = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb";
+    //string ML_weights = parser(ML_weights.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml");
+    string ML_weights = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml";
+    //string face_detect = parser(face_detect.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat");
+    string face_detect = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat";
+    //string example = parser(example.c_str(), "/home/fra/Scaricati/2022-02-08-163449.jpg");
+    string example = "/home/fra/Scaricati/2022-02-08-163449.jpg";
 
     // Set webcam options
-    int deviceID = parser("deviceID", 0); // 0 = open default camera
-    int apiID = CAP_ANY;                  // 0 = autodetect default API
+    //int deviceID = parser("deviceID", 0); // 0 = open default camera
+    int deviceID = 0;       // 0 = open default camera
+    int apiID = CAP_ANY;    // 0 = autodetect default API
 
     // Load SNN
     dnn::Net snn = cv::dnn::readNetFromTensorflow(SNN_weights);
@@ -109,17 +149,21 @@ int main(int argc, char* argv[])
     deserialize(face_detect) >> pose_model;
 
 
+    
+
     if (cl.search(2, "-e", "--example"))
     {
         // Extract path
         string img_path = cl.next(example.c_str());
 
         // Make the prediction
-        predict_image(img_path, detector, snn, ml, antispoofing_detector, face_detector);
+        predict_image(img_path, detector, snn, ml);
 
         waitKey(5000);
 
     }
+
+    
     else if (cl.search(2, "-wr", "--webcamrealtime"))
     {
         // Open the default video camera
@@ -128,30 +172,38 @@ int main(int argc, char* argv[])
         // Open selected camera using selected API
         cap.open(deviceID, apiID);
 
+        Mat frame;
+        Mat cropedFrame;
+        AntiSpoofingDetection antispoofing_detector(frame, snn, ml);
+        FaceDetection face_detector(detector, frame, cropedFrame);
+
         while (true)
         {
-            Mat frame;
-
             // Read a new frame from video 
             bool bSuccess = cap.read(frame); 
+
+            face_detector.img = frame;
 
             // Breaking the while loop if the frames cannot be captured
             if (camera_disconnection(bSuccess)) break;
 
             // Extract only the face
-            Mat cropedFrame = face_detector.extract_rectangle(detector, frame);
+            cropedFrame = face_detector.extract_rectangle();
+
+            antispoofing_detector.img = cropedFrame;
+            face_detector.cropedImage = cropedFrame;
                                
             // Check if the face is blurred
-            bool blurred = face_detector.blur_detection(cropedFrame);
+            bool blurred = face_detector.blur_detection();
                     
             // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
             if (!blurred)
             {
-                string pred = antispoofing_detector.single_prediction(cropedFrame, snn, ml);
-                face_detector.print_rectangle_cv(detector, frame, blurred, pred);
+                string pred = antispoofing_detector.single_prediction();
+                face_detector.print_rectangle_cv(blurred, pred);
             }
             else
-                face_detector.print_rectangle_cv(detector, frame, blurred);
+                face_detector.print_rectangle_cv(blurred);
 
             // Check when close webcam
             if (close_webcam()) break;
@@ -169,7 +221,11 @@ int main(int argc, char* argv[])
         string pred = "Null";
 
         int i = 1;
+
         Mat frame;
+        Mat cropedFrame;
+        AntiSpoofingDetection antispoofing_detector(frame, snn, ml);
+        FaceDetection face_detector(detector, frame, cropedFrame);
 
         while (true)
         {
@@ -179,14 +235,18 @@ int main(int argc, char* argv[])
                 // Read a new frame from video
                 bool bSuccess = cap.read(frame);
 
+                face_detector.img = frame;
+
                 // Breaking the while loop if the frames cannot be captured
                 if (camera_disconnection(bSuccess)) break;
 
                 // Extract only the face
-                Mat cropedFrame = face_detector.extract_rectangle(detector, frame);
+                cropedFrame = face_detector.extract_rectangle();
+
+                antispoofing_detector.img = cropedFrame;
                                            
                 // Check if the face is blurred
-                bool blurred = face_detector.blur_detection(cropedFrame);
+                bool blurred = face_detector.blur_detection();
                 
                 if (!blurred)
                 {
@@ -206,13 +266,14 @@ int main(int argc, char* argv[])
 
                 imshow(window_name, frame);
 
-                pred = antispoofing_detector.multiple_prediction(frames_path, snn, ml);
+                pred = antispoofing_detector.multiple_prediction(frames_path);
             }
 
             // Check when close webcam
             if (close_webcam()) break;
         }
     }
+    
 
     return 0;
 
