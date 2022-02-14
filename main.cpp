@@ -24,24 +24,15 @@ using namespace dlib;
 
 int main(int argc, char* argv[])
 {
-    //string filename = "../src/data.dat";
-
-    //GetPot parser(filename.c_str());
     GetPot cl(argc, argv);
 
-    //string frames_path = parser(frames_path.c_str(), "/home/fra/Project/Frames/");
     string frames_path = "/home/fra/Project/Frames/";
-    //string SNN_weights = parser(SNN_weights.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb");
     string SNN_weights = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb";
-    //string ML_weights = parser(ML_weights.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml");
     string ML_weights = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml";
-    //string face_detect = parser(face_detect.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat");
     string face_detect = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat";
-    //string example_path = parser(example.c_str(), "/home/fra/Scaricati/2022-02-08-163449.jpg");
     string img_path = "/home/fra/Scaricati/2022-02-08-163449.jpg";
 
     // Set webcam options
-    //int deviceID = parser("deviceID", 0); // 0 = open default camera
     int deviceID = 0;       // 0 = open default camera
     int apiID = CAP_ANY;    // 0 = autodetect default API
 
@@ -53,7 +44,7 @@ int main(int argc, char* argv[])
     // Load ML Model
     Ptr<ml::RTrees> ml = Algorithm::load<ml::RTrees> (ML_weights);
 
-    // Load face detection and pose estimation models.
+    // Load face detection and pose estimation models
     frontal_face_detector detector = get_frontal_face_detector();
     shape_predictor pose_model;
     deserialize(face_detect) >> pose_model;
@@ -64,15 +55,12 @@ int main(int argc, char* argv[])
     bool  blurred;
     string pred = "Null";
 
-    AntiSpoofingDetection antispoofing_detector(face, snn, ml, pred);
     FaceDetection face_detector(detector, img, cropedImage, blurred);
+    AntiSpoofingDetection antispoofing_detector(face, snn, ml, pred);
 
 
     if (cl.search(2, "-p", "--path"))
     {
-        // Extract path
-        //string img_path = cl.next(img_path.c_str());
-
         face_detector.img = imread(img_path, IMREAD_COLOR);
 
         FinalPrediction final_prediction(face_detector, antispoofing_detector);
@@ -111,7 +99,23 @@ int main(int argc, char* argv[])
 //windowWidth=cv2.getWindowImageRect("myWindow")[2]
 //windowHeight=cv2.getWindowImageRect("myWindow")[3]
 
-//putText(temp, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+/* To use GetPot to extract parameters
+    string filename = "../src/data.dat";
+    GetPot parser(filename.c_str());
+
+    string frames_path = parser(frames_path.c_str(), "/home/fra/Project/Frames/");
+    string SNN_weights = parser(SNN_weights.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb");
+    string ML_weights = parser(ML_weights.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml");
+    string face_detect = parser(face_detect.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat");
+    string example_path = parser(example.c_str(), "/home/fra/Scaricati/2022-02-08-163449.jpg");
+
+    // Set webcam options
+    int deviceID = parser("deviceID", 0); // 0 = open default camera
+
+    // Extract path
+    string img_path = cl.next(img_path.c_str());
+*/
+
 
 /* To print laplacian image
     Mat abs_dst = face_detector.compute_laplacian(frame);
@@ -131,7 +135,6 @@ int main(int argc, char* argv[])
     //face_detector.print_rectangle_cv(detector, img);
     //face_detector.print_shape(img, faces);
 */
-
 
 
 /* To monitor time
