@@ -1,6 +1,7 @@
 #include "../include/final_prediction.h"
 #include "../include/antispoofing_detection.h"
 #include "../include/face_detection.h"
+#include "../include/utilities.h"
 
 using namespace cv;
 using namespace std;
@@ -13,21 +14,29 @@ face_detector(_face_detector), antispoofing_detector(_antispoofing_detector) {};
 
 void FinalPrediction::predict_image()
 {
-    // Extract only the face
-    antispoofing_detector.face = face_detector.extract_rectangle();
+    //face_detector.rect = face_detector.detect_rectangle();
 
-    // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
-    if (!face_detector.blur_detection())
-    {
-        // Make prediction for the face
-        face_detector.print_rectangle_cv(antispoofing_detector.single_prediction());
-    }
+    if (face_detector.out_of_bounds())
+        print_status(&face_detector.img, "Face out of bounds");
     else
     {
-        // Print the image with prediction (or "Blorred"), dimensions, rectangles of face detected and of face considered to make the prediction
-        face_detector.print_rectangle_cv();
-    }   
+        // Extract only the face
+        antispoofing_detector.face = face_detector.extract_rectangle();
+
+        // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
+        if (!face_detector.blur_detection())
+        {
+            // Make prediction for the face
+            face_detector.print_rectangle_cv(antispoofing_detector.single_prediction());
+        }
+        else
+        {
+            // Print the image with prediction (or "Blorred"), dimensions, rectangles of face detected and of face considered to make the prediction
+            face_detector.print_rectangle_cv();
+        } 
+    }
 }
+
 
 
 
@@ -46,26 +55,33 @@ int FinalPrediction::predict_images(VideoCapture cap, int n_img, string frames_p
             bool bSuccess = cap.read(face_detector.img);
 
             // Breaking the while loop if the frames cannot be captured
-            if (FinalPrediction::camera_disconnection(bSuccess)) return 1;
+            if (camera_disconnection(bSuccess)) return 1;
 
-            // Extract only the face
-            antispoofing_detector.face = face_detector.extract_rectangle();
-                                           
-            // Check if the face is blurred 
-            if (!face_detector.blur_detection())
+            //face_detector.rect= face_detector.detect_rectangle();
+
+            if (face_detector.out_of_bounds())
+                print_status(&face_detector.img, "Face out of bounds");
+            else
             {
-                // Save frame
-                imwrite(frames_path + "frame" + std::to_string(i) +".jpg", antispoofing_detector.face);
-                i++;
-            } 
+                // Extract only the face
+                antispoofing_detector.face = face_detector.extract_rectangle();
+                                            
+                // Check if the face is blurred 
+                if (!face_detector.blur_detection())
+                {
+                    // Save frame
+                    imwrite(frames_path + "frame" + std::to_string(i) +".jpg", antispoofing_detector.face);
+                    i++;
+                } 
+            }
             imshow(window_name, face_detector.img);
         }
         else
         {
             if (antispoofing_detector.pred == "Null")
-                antispoofing_detector.print_status(&face_detector.img, "Performing prediction...");
+                print_status(&face_detector.img, "Performing prediction...");
             else
-                antispoofing_detector.print_status(&face_detector.img, antispoofing_detector.pred);
+                print_status(&face_detector.img, antispoofing_detector.pred);
 
             imshow(window_name, face_detector.img);
 
@@ -73,7 +89,7 @@ int FinalPrediction::predict_images(VideoCapture cap, int n_img, string frames_p
         }
 
         // Check when close webcam
-        if (FinalPrediction::close_webcam()) return 1;
+        if (close_webcam()) return 1;
     }
     return 0;
 }
@@ -87,16 +103,16 @@ int FinalPrediction::predict_realtime(VideoCapture cap)
         bool bSuccess = cap.read(face_detector.img); 
 
         // Breaking the while loop if the frames cannot be captured
-        if (FinalPrediction::camera_disconnection(bSuccess)) return 1;
+        if (camera_disconnection(bSuccess)) return 1;
             
         // Make the prediction
         FinalPrediction::predict_image();
 
         // Check when close webcam
-        if (FinalPrediction::close_webcam()) return 1;
+        if (close_webcam()) return 1;
     }
     return 0;
-}
+}  
 
 
 

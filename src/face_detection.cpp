@@ -1,31 +1,89 @@
 #include "../include/face_detection.h"
+#include "../include/utilities.h"
 
 using namespace cv;
 using namespace std;
 using namespace dlib;
 
 
-FaceDetection::FaceDetection(frontal_face_detector _detector, Mat _img, Mat _cropedImage, bool _blurred):
-detector(_detector), img(_img), cropedImage(_cropedImage), blurred(_blurred) {};
+FaceDetection::FaceDetection(frontal_face_detector _detector, Mat _img, Mat _cropedImage, bool _blurred, VideoCapture _cap, int _ROI_dim):
+detector(_detector), img(_img), cropedImage(_cropedImage), blurred(_blurred), cap(_cap)
+{
+    cv::Rect rectExp;
+    cv::Rect rect;
+    
+    int x_rect_center = rect.x + rect.width/2;
+    int y_rect_center = rect.y + rect.height/2;
+
+    int width_screen = cap.get(CAP_PROP_FRAME_WIDTH);
+    int height_screen = cap.get(CAP_PROP_FRAME_HEIGHT);
+    int x_screen_center = width_screen/2;
+    int y_screen_center = height_screen/2;
+    
+    // If the screen is too small the ROI will be as big as the screen otherwise it is fixed
+    if (width_screen<_ROI_dim || height_screen<_ROI_dim)
+        ROI_dim = min(width_screen, height_screen);
+    else
+        ROI_dim = _ROI_dim;
+};
+
+
+bool FaceDetection::out_of_bounds_top() {return ((y_rect_center + ROI_dim/2) > height_screen);}
+
+bool FaceDetection::out_of_bounds_bottom() {return ((y_rect_center - ROI_dim/2) < 0);}
+
+bool FaceDetection::out_of_bounds_right() {return ((x_rect_center + ROI_dim/2) > width_screen);}
+
+bool FaceDetection::out_of_bounds_left() {return ((x_rect_center - ROI_dim/2) < 0);}
+
+bool FaceDetection::out_of_bounds()
+{
+    // If ROI is out of bounds in all sides or in height (such can happened in phones) or in width (such can happened in pc webcam),
+    // the message of closeness to the screen is printed
+    if ((FaceDetection::out_of_bounds_top() && FaceDetection::out_of_bounds_bottom() &&
+         FaceDetection::out_of_bounds_right() && FaceDetection::out_of_bounds_left())
+        || (FaceDetection::out_of_bounds_top() && FaceDetection::out_of_bounds_bottom())
+        || (FaceDetection::out_of_bounds_right() && FaceDetection::out_of_bounds_left()))
+    {
+        print_status(&img, "The face is too close to the webcam.", false);
+        return 1;
+    }
+    // If the center of the face and the center of the screen are away more than the half of the
+    // minimum between the width and the height of the screen, the message of non centering is printed
+    else if (abs(x_screen_center - x_rect_center) > min(width_screen, height_screen)/2)
+    {
+        print_status(&img, "The face is not centered in the screen", false);
+        return 1;
+    }
+    return 0;
+}
+
+
+cv::Rect FaceDetection::extract_ROI()
+{
+    return Rect(x_rect_center - ROI_dim/2, y_rect_center - ROI_dim/2, ROI_dim, ROI_dim);
+    //return Rect(rect.x - 70, rect.y - 70, rect.width + 140, rect.height + 140);
+}
 
 
 Mat FaceDetection::extract_rectangle()
 {
-    // Detect face in dlib rectangle
-    dlib::rectangle faceRectDlib = FaceDetection::detect_rectangle();
+    // Expand the rectangle extracting the ROI
+    rectExp = FaceDetection::extract_ROI();
 
-    // Convert dlib rectangle in OpenCV rectangle
-    cv::Rect faceRectCV = FaceDetection::dlib_rectangle_to_cv(faceRectDlib);
-
-    cv::Rect ExpfaceRectCV = expand_rectangle(faceRectCV);
-
-    cropedImage = img(ExpfaceRectCV);
+    /*
+    cropedImage = img(rectExp);
+    VideoCapture cap;
+    cap.open(0, CAP_ANY);
+    imshow( "Image", cropedImage );
+    waitKey(5000);
+    */
 
     return cropedImage;
 }
 
 
-dlib::rectangle FaceDetection::detect_rectangle()
+cv::Rect FaceDetection::detect_rectangle()
 {
     // http://dlib.net/webcam_face_pose_ex.cpp.html
 
@@ -39,10 +97,17 @@ dlib::rectangle FaceDetection::detect_rectangle()
     std::vector<dlib::rectangle> faces = detector(cv_img);
 
     if (faces.size() > 1)
+    {
         std::cerr << "More than one face" << std::endl;
+        print_status(&img, "More than one face, the first is extracted", false);
+    }
 
-    return faces[0]; 
+    // Convert dlib rectangle in OpenCV rectangle
+    rect = FaceDetection::dlib_rectangle_to_cv(faces[0]);
+
+    return rect; 
 }
+
 
 
 dlib::cv_image<dlib::bgr_pixel> FaceDetection::cv_mat_to_dlib()
@@ -72,39 +137,23 @@ void FaceDetection::print_rectangle_cv(string pred)
 {
     //https://learnopencv.com/face-detection-opencv-dlib-and-deep-learning-c-python/
 
-    // Detect faces in the image
-	dlib::rectangle faceRect = FaceDetection::detect_rectangle();
-
-    int frameHeight = 100;
-
-	int x1 = faceRect.left();
-	int y1 = faceRect.top();
-	int x2 = faceRect.right();
-	int y2 = faceRect.bottom();
-
-    Rect faceRectCV = FaceDetection::dlib_rectangle_to_cv(faceRect);
-    Rect ExpfaceRectCV = FaceDetection::expand_rectangle(faceRectCV);
-
-    int x = ExpfaceRectCV.x;
-	int y = ExpfaceRectCV.y;
-	int width = ExpfaceRectCV.width;
-	int height = ExpfaceRectCV.height;
+    int frameHeight = 100; //?? A COSA SERVE
 
     // Plot face detected
-	cv::rectangle(img, Point(x1, y1), Point(x2, y2), Scalar(0, 255, 0), (int)(frameHeight/150.0), 4);
+	cv::rectangle(img, Point(rect.x, rect.y), Point(rect.x + rect.width, rect.y + rect.height), Scalar(0, 255, 0), (int)(frameHeight/150.0), 4);
 
     // Plot face detected expanded
-    cv::rectangle(img, Point(x, y), Point(x + width, y + height), Scalar(255,0,0), (int)(frameHeight/150.0), 4);
+    cv::rectangle(img, Point(rectExp.x, rectExp.y), Point(rectExp.x + rectExp.width, rectExp.y + rectExp.height), Scalar(255,0,0), (int)(frameHeight/150.0), 4);
 
     // Plot result of the prediction if exists otherwise plot blurred if the image is blurred
     if (pred != "Null")
-        putText(img, pred,  Point(x1 + int((x2-x1)/2) - 5, y1 - 3), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+        putText(img, pred,  Point(x_screen_center - 10, y_screen_center), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
     else if (blurred)
-        putText(img, "Blurred",  Point(x1 + int((x2-x1)/2) - 5, y1 - 3), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+        putText(img, "Blurred",  Point(x_screen_center - 10, y_screen_center), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
 
     // Plot dimension of the rectangle
-    string dim = to_string(x2-x1) + string("x") + to_string(y2-y1);
-    putText(img, dim,  Point(x2, y2), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+    string dim = to_string(rect.width) + string("x") + to_string(rect.height);
+    putText(img, dim,  Point(rect.x + rect.width, rect.y), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
 
     imshow( "Image", img );
     //imwrite("/home/fra/Project/Frames/frame" + std::to_string(j+1) +".jpg", temp);
@@ -167,6 +216,9 @@ Mat FaceDetection::compute_laplacian()
 
     return abs_dst;
 }
+
+
+
 
 
 

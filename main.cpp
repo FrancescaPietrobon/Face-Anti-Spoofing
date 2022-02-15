@@ -16,6 +16,7 @@
 #include "include/antispoofing_detection.h"
 #include "include/face_detection.h"
 #include "include/final_prediction.h"
+#include "include/utilities.h"
 
 using namespace std;
 using namespace cv;
@@ -49,13 +50,17 @@ int main(int argc, char* argv[])
     shape_predictor pose_model;
     deserialize(face_detect) >> pose_model;
 
+    // Open the default video camera
+    VideoCapture cap;
+
     Mat img;
     Mat face;
     Mat cropedImage;
     bool  blurred;
     string pred = "Null";
+    int ROI_dim = 200;
 
-    FaceDetection face_detector(detector, img, cropedImage, blurred);
+    FaceDetection face_detector(detector, img, cropedImage, blurred, cap, ROI_dim);
     AntiSpoofingDetection antispoofing_detector(face, snn, ml, pred);
 
 
@@ -72,8 +77,7 @@ int main(int argc, char* argv[])
     }
     else
     {
-        // Open the default video camera
-        VideoCapture cap;
+
 
         // Open selected camera using selected API
         cap.open(deviceID, apiID);
