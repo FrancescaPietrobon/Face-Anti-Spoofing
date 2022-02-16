@@ -7,17 +7,21 @@ using namespace cv;
 using namespace std;
 using namespace dlib;       
         
- 
+
 FinalPrediction::FinalPrediction(FaceDetection _face_detector, AntiSpoofingDetection _antispoofing_detector):
 face_detector(_face_detector), antispoofing_detector(_antispoofing_detector) {};
 
 
 void FinalPrediction::predict_image()
 {
-    //face_detector.rect = face_detector.detect_rectangle();
+    //face_detector.detect_rectangle();
 
     if (face_detector.out_of_bounds())
+    {
+        imshow( "Image", face_detector.img);
         print_status(&face_detector.img, "Face out of bounds");
+    }
+        
     else
     {
         // Extract only the face
@@ -40,7 +44,7 @@ void FinalPrediction::predict_image()
 
 
 
-int FinalPrediction::predict_images(VideoCapture cap, int n_img, string frames_path)
+int FinalPrediction::predict_images(int n_img, string frames_path)
 {
     string window_name = "Webcam";
 
@@ -52,7 +56,9 @@ int FinalPrediction::predict_images(VideoCapture cap, int n_img, string frames_p
         if (i < n_img)
         {
             // Read a new frame from video
-            bool bSuccess = cap.read(face_detector.img);
+            bool bSuccess = face_detector.cap.read(face_detector.img);
+            //imshow(window_name, face_detector.img);
+            //waitKey(5000);
 
             // Breaking the while loop if the frames cannot be captured
             if (camera_disconnection(bSuccess)) return 1;
@@ -95,12 +101,12 @@ int FinalPrediction::predict_images(VideoCapture cap, int n_img, string frames_p
 }
 
 
-int FinalPrediction::predict_realtime(VideoCapture cap)
+int FinalPrediction::predict_realtime()
 {
     while (true)
     {
         // Read a new frame from video 
-        bool bSuccess = cap.read(face_detector.img); 
+        bool bSuccess = face_detector.cap.read(face_detector.img); 
 
         // Breaking the while loop if the frames cannot be captured
         if (camera_disconnection(bSuccess)) return 1;

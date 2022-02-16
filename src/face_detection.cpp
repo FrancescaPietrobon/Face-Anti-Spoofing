@@ -6,25 +6,50 @@ using namespace std;
 using namespace dlib;
 
 
-FaceDetection::FaceDetection(frontal_face_detector _detector, Mat _img, Mat _cropedImage, bool _blurred, VideoCapture _cap, int _ROI_dim):
-detector(_detector), img(_img), cropedImage(_cropedImage), blurred(_blurred), cap(_cap)
+FaceDetection::FaceDetection(frontal_face_detector _detector, Mat _img, Mat _cropedImage, VideoCapture _cap, int _ROI_dim):
+detector(_detector), img(_img), cropedImage(_cropedImage), cap(_cap), ROI_dim(_ROI_dim)
 {
+    /*
     cv::Rect rectExp;
     cv::Rect rect;
-    
-    int x_rect_center = rect.x + rect.width/2;
-    int y_rect_center = rect.y + rect.height/2;
 
+    int x_rect_center;
+    int y_rect_center;
+
+    
     int width_screen = cap.get(CAP_PROP_FRAME_WIDTH);
     int height_screen = cap.get(CAP_PROP_FRAME_HEIGHT);
+
+    
+    const int x_screen_center = width_screen/2;
+    cout << x_screen_center << endl;
+    const int y_screen_center = height_screen/2;
+    cout << y_screen_center << endl;
+    */
+    /*
+    int width_screen = cap.get(CAP_PROP_FRAME_WIDTH);
+    cout << width_screen << endl;
+    int height_screen = cap.get(CAP_PROP_FRAME_HEIGHT);
+    cout << height_screen << endl;
     int x_screen_center = width_screen/2;
+    cout << x_screen_center << endl;
     int y_screen_center = height_screen/2;
+    cout << y_screen_center << endl;
     
     // If the screen is too small the ROI will be as big as the screen otherwise it is fixed
     if (width_screen<_ROI_dim || height_screen<_ROI_dim)
         ROI_dim = min(width_screen, height_screen);
     else
         ROI_dim = _ROI_dim;
+
+    cout << ROI_dim << endl;
+    
+    
+    int x_rect_center = rect.x + rect.width/2;
+    int y_rect_center = rect.y + rect.height/2;
+
+
+    */
 };
 
 
@@ -37,7 +62,14 @@ bool FaceDetection::out_of_bounds_right() {return ((x_rect_center + ROI_dim/2) >
 bool FaceDetection::out_of_bounds_left() {return ((x_rect_center - ROI_dim/2) < 0);}
 
 bool FaceDetection::out_of_bounds()
-{
+{   
+    detect_rectangle();
+    // If the screen is too small the ROI will be as big as the screen otherwise it is fixed
+    if (width_screen<ROI_dim || height_screen<ROI_dim)
+        ROI_dim = min(width_screen, height_screen);
+    else
+        ROI_dim = ROI_dim;
+
     // If ROI is out of bounds in all sides or in height (such can happened in phones) or in width (such can happened in pc webcam),
     // the message of closeness to the screen is printed
     if ((FaceDetection::out_of_bounds_top() && FaceDetection::out_of_bounds_bottom() &&
@@ -50,8 +82,14 @@ bool FaceDetection::out_of_bounds()
     }
     // If the center of the face and the center of the screen are away more than the half of the
     // minimum between the width and the height of the screen, the message of non centering is printed
-    else if (abs(x_screen_center - x_rect_center) > min(width_screen, height_screen)/2)
+    else if (abs(x_screen_center - x_rect_center) > int(min(width_screen, height_screen)/2)) //before /2
     {
+        cout << x_rect_center << endl;
+        cout << x_screen_center << endl;
+        cout << abs(x_screen_center - x_rect_center) << endl;
+        cout << int(min(width_screen, height_screen)/2) << endl;
+        cout << width_screen << endl;
+        cout << height_screen << endl;
         print_status(&img, "The face is not centered in the screen", false);
         return 1;
     }
@@ -60,7 +98,7 @@ bool FaceDetection::out_of_bounds()
 
 
 cv::Rect FaceDetection::extract_ROI()
-{
+{    
     return Rect(x_rect_center - ROI_dim/2, y_rect_center - ROI_dim/2, ROI_dim, ROI_dim);
     //return Rect(rect.x - 70, rect.y - 70, rect.width + 140, rect.height + 140);
 }
@@ -70,9 +108,9 @@ Mat FaceDetection::extract_rectangle()
 {
     // Expand the rectangle extracting the ROI
     rectExp = FaceDetection::extract_ROI();
+    cropedImage = img(rectExp);
 
     /*
-    cropedImage = img(rectExp);
     VideoCapture cap;
     cap.open(0, CAP_ANY);
     imshow( "Image", cropedImage );
@@ -83,7 +121,7 @@ Mat FaceDetection::extract_rectangle()
 }
 
 
-cv::Rect FaceDetection::detect_rectangle()
+void FaceDetection::detect_rectangle()
 {
     // http://dlib.net/webcam_face_pose_ex.cpp.html
 
@@ -105,7 +143,11 @@ cv::Rect FaceDetection::detect_rectangle()
     // Convert dlib rectangle in OpenCV rectangle
     rect = FaceDetection::dlib_rectangle_to_cv(faces[0]);
 
-    return rect; 
+    x_rect_center = rect.x + rect.width/2;
+    cout << x_rect_center << endl;
+    y_rect_center = rect.y + rect.height/2;
+    cout << y_rect_center << endl;
+  
 }
 
 
@@ -124,14 +166,14 @@ cv::Rect FaceDetection::dlib_rectangle_to_cv(dlib::rectangle r)
     return cv::Rect(cv::Point2i(r.left(), r.top()), cv::Point2i(r.right() + 1, r.bottom() + 1));
 }
 
-
+/*
 cv::Rect FaceDetection::expand_rectangle(cv::Rect rect)
 {
     // CONTROLLA OUT OF BOUNDS!!!
 
     return Rect(rect.x - 70, rect.y - 70, rect.width + 140, rect.height + 140);
 }
-
+*/
 
 void FaceDetection::print_rectangle_cv(string pred)
 {

@@ -52,15 +52,16 @@ int main(int argc, char* argv[])
 
     // Open the default video camera
     VideoCapture cap;
-
+    cap.open(deviceID, apiID);
     Mat img;
     Mat face;
     Mat cropedImage;
-    bool  blurred;
+    //bool  blurred;
     string pred = "Null";
-    int ROI_dim = 200;
+    int ROI_dim = 250;
 
-    FaceDetection face_detector(detector, img, cropedImage, blurred, cap, ROI_dim);
+    // PASS BY REFERENCE CAP TO HAVE SETTED CAP.OPEN(...)
+    FaceDetection face_detector(detector, img, cropedImage, cap, ROI_dim);
     AntiSpoofingDetection antispoofing_detector(face, snn, ml, pred);
 
 
@@ -72,23 +73,21 @@ int main(int argc, char* argv[])
         
         // Make the prediction
         final_prediction.predict_image();
-
+        //imshow( "Image", face_detector.img);
         waitKey(5000);
     }
     else
     {
-
-
         // Open selected camera using selected API
-        cap.open(deviceID, apiID);
+        //cap.open(deviceID, apiID);
 
         FinalPrediction final_prediction(face_detector, antispoofing_detector);
 
         // Check if realtime prediction such as example or if prediction of multiple images simultaneously
         if (cl.search(2, "-e", "--example"))
-            final_prediction.predict_realtime(cap);
+            final_prediction.predict_realtime();
         else
-            final_prediction.predict_images(cap, n_img, frames_path);
+            final_prediction.predict_images(n_img, frames_path);
 
     } 
     
