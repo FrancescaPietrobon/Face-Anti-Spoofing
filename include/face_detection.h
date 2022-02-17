@@ -27,7 +27,7 @@ class FaceDetection
         void print_rectangle_cv(string pred = "Null");
         Mat cropedImage;
         Mat img;
-        bool blurred = false;
+        //bool blurred = false;
         VideoCapture cap;
         int ROI_dim;
         cv::Rect rect;
@@ -47,7 +47,7 @@ class FaceDetection
         Mat compute_laplacian();
         frontal_face_detector detector;
         cv::Rect rectExp;
-        
+        bool blurred = false;
         int x_rect_center;
         int y_rect_center;
         //int width_screen;

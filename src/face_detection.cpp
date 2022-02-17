@@ -84,12 +84,6 @@ bool FaceDetection::out_of_bounds()
     // minimum between the width and the height of the screen, the message of non centering is printed
     else if (abs(x_screen_center - x_rect_center) > int(min(width_screen, height_screen)/2)) //before /2
     {
-        cout << x_rect_center << endl;
-        cout << x_screen_center << endl;
-        cout << abs(x_screen_center - x_rect_center) << endl;
-        cout << int(min(width_screen, height_screen)/2) << endl;
-        cout << width_screen << endl;
-        cout << height_screen << endl;
         print_status(&img, "The face is not centered in the screen", false);
         return 1;
     }
@@ -144,10 +138,7 @@ void FaceDetection::detect_rectangle()
     rect = FaceDetection::dlib_rectangle_to_cv(faces[0]);
 
     x_rect_center = rect.x + rect.width/2;
-    cout << x_rect_center << endl;
-    y_rect_center = rect.y + rect.height/2;
-    cout << y_rect_center << endl;
-  
+    y_rect_center = rect.y + rect.height/2;  
 }
 
 
@@ -218,7 +209,7 @@ bool FaceDetection::blur_detection()
     meanStdDev(laplacianImage, mean, stddev, Mat());
     double variance = stddev.val[0] * stddev.val[0];
 
-    double threshold = 5.5; //6.5 before
+    double threshold = 19; //6.5 before
 
     blurred = true;
 

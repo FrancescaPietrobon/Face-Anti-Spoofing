@@ -24,15 +24,12 @@ using namespace dlib;
 class FinalPrediction
 {
     public:
-        FinalPrediction(FaceDetection face_detector, AntiSpoofingDetection antispoofing_detector);
+        FinalPrediction(FaceDetection *face_detector, AntiSpoofingDetection *antispoofing_detector);
         void predict_image();
         int predict_images(int n_img, string frames_path);
         int predict_realtime();
-        FaceDetection face_detector;
-        AntiSpoofingDetection antispoofing_detector;
-    private:
-        bool camera_disconnection(bool bSuccess);
-        bool close_webcam();
+        FaceDetection *face_detector;
+        AntiSpoofingDetection *antispoofing_detector;
         
 };
 

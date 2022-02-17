@@ -8,35 +8,35 @@ using namespace std;
 using namespace dlib;       
         
 
-FinalPrediction::FinalPrediction(FaceDetection _face_detector, AntiSpoofingDetection _antispoofing_detector):
+FinalPrediction::FinalPrediction(FaceDetection *_face_detector, AntiSpoofingDetection *_antispoofing_detector):
 face_detector(_face_detector), antispoofing_detector(_antispoofing_detector) {};
 
 
 void FinalPrediction::predict_image()
 {
-    //face_detector.detect_rectangle();
+    //face_detector->detect_rectangle();
 
-    if (face_detector.out_of_bounds())
+    if (face_detector->out_of_bounds())
     {
-        imshow( "Image", face_detector.img);
-        print_status(&face_detector.img, "Face out of bounds");
+        imshow( "Image", face_detector->img);
+        print_status(&face_detector->img, "Face out of bounds");
     }
         
     else
     {
         // Extract only the face
-        antispoofing_detector.face = face_detector.extract_rectangle();
+        antispoofing_detector->face = face_detector->extract_rectangle();
 
         // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
-        if (!face_detector.blur_detection())
+        if (!face_detector->blur_detection())
         {
             // Make prediction for the face
-            face_detector.print_rectangle_cv(antispoofing_detector.single_prediction());
+            face_detector->print_rectangle_cv(antispoofing_detector->single_prediction());
         }
         else
         {
             // Print the image with prediction (or "Blorred"), dimensions, rectangles of face detected and of face considered to make the prediction
-            face_detector.print_rectangle_cv();
+            face_detector->print_rectangle_cv();
         } 
     }
 }
@@ -56,7 +56,7 @@ int FinalPrediction::predict_images(int n_img, string frames_path)
         if (i < n_img)
         {
             // Read a new frame from video
-            bool bSuccess = face_detector.cap.read(face_detector.img);
+            bool bSuccess = face_detector->cap.read(face_detector->img);
             //imshow(window_name, face_detector.img);
             //waitKey(5000);
 
@@ -65,33 +65,33 @@ int FinalPrediction::predict_images(int n_img, string frames_path)
 
             //face_detector.rect= face_detector.detect_rectangle();
 
-            if (face_detector.out_of_bounds())
-                print_status(&face_detector.img, "Face out of bounds");
+            if (face_detector->out_of_bounds())
+                print_status(&face_detector->img, "Face out of bounds");
             else
             {
                 // Extract only the face
-                antispoofing_detector.face = face_detector.extract_rectangle();
+                antispoofing_detector->face = face_detector->extract_rectangle();
                                             
                 // Check if the face is blurred 
-                if (!face_detector.blur_detection())
+                if (!face_detector->blur_detection())
                 {
                     // Save frame
-                    imwrite(frames_path + "frame" + std::to_string(i) +".jpg", antispoofing_detector.face);
+                    imwrite(frames_path + "frame" + std::to_string(i) +".jpg", antispoofing_detector->face);
                     i++;
                 } 
             }
-            imshow(window_name, face_detector.img);
+            imshow(window_name, face_detector->img);
         }
         else
         {
-            if (antispoofing_detector.pred == "Null")
-                print_status(&face_detector.img, "Performing prediction...");
+            if (antispoofing_detector->pred == "Null")
+                print_status(&face_detector->img, "Performing prediction...");
             else
-                print_status(&face_detector.img, antispoofing_detector.pred);
+                print_status(&face_detector->img, antispoofing_detector->pred);
 
-            imshow(window_name, face_detector.img);
+            imshow(window_name, face_detector->img);
 
-            antispoofing_detector.pred = antispoofing_detector.multiple_prediction(frames_path);
+            antispoofing_detector->pred = antispoofing_detector->multiple_prediction(frames_path);
         }
 
         // Check when close webcam
@@ -106,7 +106,7 @@ int FinalPrediction::predict_realtime()
     while (true)
     {
         // Read a new frame from video 
-        bool bSuccess = face_detector.cap.read(face_detector.img); 
+        bool bSuccess = face_detector->cap.read(face_detector->img); 
 
         // Breaking the while loop if the frames cannot be captured
         if (camera_disconnection(bSuccess)) return 1;
@@ -119,32 +119,6 @@ int FinalPrediction::predict_realtime()
     }
     return 0;
 }  
-
-
-
-bool FinalPrediction::camera_disconnection(bool bSuccess)
-{
-    // Breaking the while loop if the frames cannot be captured
-    if (bSuccess == false) 
-    {
-        cout << "Video camera is disconnected" << endl;
-        cin.get(); //Wait for any key press
-        return true;
-    }
-    return false;
-}
-
-
-bool FinalPrediction::close_webcam()
-{
-    if (waitKey(1) == 27)
-    {
-        cout << "Esc key is pressed by user. Stoppig the video" << endl;
-        return true;
-    }
-    return false;
-}
-
 
 
 

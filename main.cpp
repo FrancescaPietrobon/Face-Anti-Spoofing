@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     Mat cropedImage;
     //bool  blurred;
     string pred = "Null";
-    int ROI_dim = 250;
+    int ROI_dim = 400;
 
     // PASS BY REFERENCE CAP TO HAVE SETTED CAP.OPEN(...)
     FaceDetection face_detector(detector, img, cropedImage, cap, ROI_dim);
@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
     {
         face_detector.img = imread(img_path, IMREAD_COLOR);
 
-        FinalPrediction final_prediction(face_detector, antispoofing_detector);
+        FinalPrediction final_prediction(&face_detector, &antispoofing_detector);
         
         // Make the prediction
         final_prediction.predict_image();
@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
         // Open selected camera using selected API
         //cap.open(deviceID, apiID);
 
-        FinalPrediction final_prediction(face_detector, antispoofing_detector);
+        FinalPrediction final_prediction(&face_detector, &antispoofing_detector);
 
         // Check if realtime prediction such as example or if prediction of multiple images simultaneously
         if (cl.search(2, "-e", "--example"))
