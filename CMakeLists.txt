@@ -21,11 +21,25 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}")
 
-add_library(MyFunctions STATIC my_functions.cpp)
+add_library(AntiSpoofingDetection src/antispoofing_detection.cpp)
+add_library(FaceDetection src/face_detection.cpp)
+add_library(Prediction src/final_prediction.cpp)
+add_library(Utilities src/utilities.cpp)
+#add_library(Parameters src/parameters.cpp)
 
-find_package( OpenCV REQUIRED )
+find_package(OpenCV REQUIRED)
+find_package(dlib REQUIRED)
+
 include_directories( ${OpenCV_INCLUDE_DIRS} )
+include_directories(${dlib_INCLUDE_DIRS})
 
-add_executable(FaceAntiSpoofing main.cpp)# my_functions.cpp my_functions.h)
+add_executable(FaceAntiSpoofing main.cpp)
+
 target_link_libraries(FaceAntiSpoofing ${OpenCV_LIBS} )
-target_link_libraries(FaceAntiSpoofing MyFunctions)
+target_link_libraries(FaceAntiSpoofing ${dlib_LIBS})
+target_link_libraries(FaceAntiSpoofing AntiSpoofingDetection)
+target_link_libraries(FaceAntiSpoofing FaceDetection)
+target_link_libraries(FaceAntiSpoofing Prediction)
+target_link_libraries(FaceAntiSpoofing Utilities)
+#target_link_libraries(FaceAntiSpoofing Parameters)
+

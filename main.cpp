@@ -3,104 +3,94 @@
 #include <iostream>
 #include <string>
 
-#include "my_functions.h"
+#include <dlib/opencv.h>
+#include <opencv2/highgui/highgui.hpp>
+#include <dlib/image_processing/frontal_face_detector.h>
+#include <dlib/image_processing/render_face_detections.h>
+#include <dlib/image_processing.h>
+#include <dlib/gui_widgets.h>
 
-using namespace cv;
+#include "GetPot"
+
+//#include "include/parameters.h"
+#include "include/antispoofing_detection.h"
+#include "include/face_detection.h"
+#include "include/final_prediction.h"
+#include "include/utilities.h"
+
 using namespace std;
+using namespace cv;
+using namespace dlib;
 
 
 int main(int argc, char* argv[])
 {
+    GetPot cl(argc, argv);
+
+    string frames_path = "/home/fra/Project/Frames/";
+    string SNN_weights = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb";
+    string ML_weights = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml";
+    string face_detect = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat";
+    string img_path = "/home/fra/Scaricati/2022-02-08-163449.jpg";
+
+    // Set webcam options
+    int deviceID = 0;       // 0 = open default camera
+    int apiID = CAP_ANY;    // 0 = autodetect default API
+
+    int n_img = 50;
 
     // Load SNN
-    
-    string weights = "/home/fra/Project/Models/Frozen_graph_All_final_net_5e-4.pb";
-    dnn::Net cvNet = cv::dnn::readNetFromTensorflow(weights);
+    dnn::Net snn = cv::dnn::readNetFromTensorflow(SNN_weights);
 
     // Load ML Model
-    Ptr<ml::RTrees> svm = Algorithm::load<ml::RTrees> ("/home/fra/Project/Models/All_RF_opencv_final_net_lr5e-4.xml");
+    Ptr<ml::RTrees> ml = Algorithm::load<ml::RTrees> (ML_weights);
 
+    // Load face detection and pose estimation models
+    frontal_face_detector detector = get_frontal_face_detector();
+    shape_predictor pose_model;
+    deserialize(face_detect) >> pose_model;
+
+    // Open the default video camera
+    VideoCapture cap;
+    cap.open(deviceID, apiID);
     Mat img;
-    string window_name = "Image selected";
+    Mat face;
+    Mat cropedImage;
+    //bool  blurred;
+    string pred = "Null";
+    int ROI_dim = 350;
 
-    if (argc > 2) // If there is a path for the image take it
+    // PASS BY REFERENCE CAP TO HAVE SETTED CAP.OPEN(...)
+    FaceDetection face_detector(detector, img, cropedImage, cap, ROI_dim);
+    AntiSpoofingDetection antispoofing_detector(face, snn, ml, pred);
+
+
+    if (cl.search(2, "-p", "--path"))
     {
-        std::string img_path;
+        face_detector.img = imread(img_path, IMREAD_COLOR);
 
-        for (int i = 1; i < argc; ++i)
-        {
-            std::string arg = argv[i];
-            if ((arg == "-p") || (arg == "--path"))
-            {
-                if (i + 1 < argc) // Make sure we aren't at the end of argv!
-                {
-                    img_path = argv[2]; // before was argv[i++]: Increment 'i' so we don't get the argument as the next argv[i].
-                    img = imread(img_path, IMREAD_COLOR);
-                    namedWindow(window_name); //create a window
-                    imshow(window_name, img);
-
-                    string output = make_prediction(img, cvNet, svm);
-                    setWindowTitle(window_name, output);
-
-                    waitKey(0);
-                }
-                else // Uh-oh, there was no argument to the destination option.
-                { 
-                    std::cerr << "--path option requires one argument." << std::endl;
-                    return 1;
-                }  
-            }
-            // POSSO AGGIUNGERE ANCHE PATH AI MODELLI
-        }
-    }
-    else // If there is no path to the image open the webcam
-    {
-        namedWindow(window_name);
-        //Open the default video camera
-        VideoCapture cap;
-        int deviceID = 0;         // 0 = open default camera
-        int apiID = CAP_ANY;      // 0 = autodetect default API
-        // open selected camera using selected API
-        cap.open(deviceID, apiID);
-
-        int i = 0;
-        while (true)
-        {
-            Mat frame;
-            bool bSuccess = cap.read(frame); // read a new frame from video 
-
-            // Breaking the while loop if the frames cannot be captured
-            if (bSuccess == false) 
-            {
-                cout << "Video camera is disconnected" << endl;
-                cin.get(); //Wait for any key press
-                break;
-            }
-
-            // Save frame
-            //imwrite("/home/fra/Project/Frames/frame" + std::to_string(i+1) +".jpg", frame);
-
-            imshow(window_name, frame);
-
-            string output = make_prediction(frame, cvNet, svm);
-            setWindowTitle(window_name, output);
-
-            i += 1;
-
-            
-            //wait for for 100 ms until any key is pressed.  
-            //If the 'Esc' key is pressed, break the while loop.
-            //If the any other key is pressed, continue the loop 
-            //If any key is not pressed withing 100 ms, continue the loop 
-            if (waitKey(1) == 27)
-            {
-                cout << "Esc key is pressed by user. Stoppig the video" << endl;
-                break;
-            }
-  
-        }
+        FinalPrediction final_prediction(&face_detector, &antispoofing_detector);
         
+        // Make the prediction
+        final_prediction.predict_image();
+        //imshow( "Image", face_detector.img);
+        waitKey(5000);
     }
+    else
+    {
+        // Open selected camera using selected API
+        //cap.open(deviceID, apiID);
+
+        FinalPrediction final_prediction(&face_detector, &antispoofing_detector);
+
+        // Check if realtime prediction such as example or if prediction of multiple images simultaneously
+        if (cl.search(2, "-e", "--example"))
+            final_prediction.predict_realtime();
+        else
+            final_prediction.predict_images(n_img, frames_path);
+
+    } 
+    
 
     return 0;
 
@@ -109,10 +99,51 @@ int main(int argc, char* argv[])
 
 
 
-    /* To monitor time
+//windowWidth=cv2.getWindowImageRect("myWindow")[2]
+//windowHeight=cv2.getWindowImageRect("myWindow")[3]
+
+/* To use GetPot to extract parameters
+    string filename = "../src/data.dat";
+    GetPot parser(filename.c_str());
+
+    string frames_path = parser(frames_path.c_str(), "/home/fra/Project/Frames/");
+    string SNN_weights = parser(SNN_weights.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb");
+    string ML_weights = parser(ML_weights.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml");
+    string face_detect = parser(face_detect.c_str(), "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat");
+    string example_path = parser(example.c_str(), "/home/fra/Scaricati/2022-02-08-163449.jpg");
+
+    // Set webcam options
+    int deviceID = parser("deviceID", 0); // 0 = open default camera
+
+    // Extract path
+    string img_path = cl.next(img_path.c_str());
+*/
+
+
+/* To print laplacian image
+    Mat abs_dst = face_detector.compute_laplacian(frame);
+    const char* window_name = "Laplace Demo";
+    imshow(window_name, abs_dst);
+*/
+
+
+/* To print rectangle and shape of the face detected
+    // to extract rectangle
+    std::vector<dlib::rectangle> faces = face_detector.detect_rectangle(detector, img);
+
+    // to extract face
+    //std::vector<full_object_detection> faces = face_detector.detect_shape(pose_model, detector, img);
+
+    face_detector.print_rectangle_dlib(img, faces, output);
+    //face_detector.print_rectangle_cv(detector, img);
+    //face_detector.print_shape(img, faces);
+*/
+
+
+/* To monitor time
     auto start_SNN = chrono::high_resolution_clock::now();
     auto stop_SNN = chrono::high_resolution_clock::now();
     auto duration_SNN = chrono::duration_cast<chrono::milliseconds>(stop_SNN - start_SNN);
     cout << "Time taken to load SNN: "
          << duration_SNN.count() << " milliseconds" << endl;
-    */
+*/

@@ -1,0 +1,17 @@
+# Path of folder where save frames
+frames_path = /home/fra/Project/Frames/
+
+# Path of SNN model
+SNN_weights = /home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb
+
+# Path of ML model
+ML_weights = /home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml
+
+# Path of face detection and pose estimation models
+face_detect = /home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat
+
+# Path of default example
+example_path = /home/fra/Scaricati/2022-02-08-163449.jpg
+
+# Webcam options
+deviceID = 0

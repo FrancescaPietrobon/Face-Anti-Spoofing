@@ -1,15 +1,18 @@
 # Face-Anti-Spoofing
 
-To run the code in [main.cpp](https://github.com/FrancescaPietrobon/Face-Anti-Spoofing/blob/main/main.cpp) it is necessary to add models pathsand run the code with:
+To run the code in [main.cpp](https://github.com/FrancescaPietrobon/Face-Anti-Spoofing/blob/main/main.cpp) it is necessary to modify some paths and run the code with:
 
 ```
 ./FaceAntiSpoofing
 ```
-
-if the image to predict must be taken via webcam, or with:
+To acquired some frames of the video and then make the final prediction.
 
 ```
-./FaceAntiSpoofing -p <image_path>
+./FaceAntiSpoofing -p
 ```
+To make the prediction for the image in <img_path> setted in the main.
 
-if the image to predict must be taken from a certain path.
+```
+./FaceAntiSpoofing -e
+```
+To make the prediction realtime for each frame looking at the rectangle considered as face and as ROI to take the prediction.
