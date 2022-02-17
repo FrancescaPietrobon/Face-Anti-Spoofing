@@ -23,7 +23,6 @@ class AntiSpoofingDetection
         AntiSpoofingDetection(Mat face, dnn::Net snn, Ptr<ml::RTrees> ml, string pred);
         string single_prediction(); 
         string multiple_prediction(string frames_path);
-        void print_status(Mat *frame, string message);
         Mat face;
         string pred;
     private:

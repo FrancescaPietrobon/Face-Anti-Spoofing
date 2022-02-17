@@ -58,11 +58,3 @@ string AntiSpoofingDetection::multiple_prediction(string frames_path)
     else
         return "Fake";
 }
-
-
-void AntiSpoofingDetection::print_status(Mat *frame, string message)
-{
-    Mat black = Mat::zeros(Size(frame->cols,frame->rows),CV_8UC1);
-    putText(black, message, Point(200,200), FONT_HERSHEY_SIMPLEX, 1, Scalar(255,255,255), 2, LINE_AA);
-    black.copyTo(*frame);
-}

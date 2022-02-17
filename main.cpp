@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     Mat cropedImage;
     //bool  blurred;
     string pred = "Null";
-    int ROI_dim = 400;
+    int ROI_dim = 350;
 
     // PASS BY REFERENCE CAP TO HAVE SETTED CAP.OPEN(...)
     FaceDetection face_detector(detector, img, cropedImage, cap, ROI_dim);

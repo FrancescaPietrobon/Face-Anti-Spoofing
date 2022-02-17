@@ -14,31 +14,33 @@ face_detector(_face_detector), antispoofing_detector(_antispoofing_detector) {};
 
 void FinalPrediction::predict_image()
 {
-    //face_detector->detect_rectangle();
-
-    if (face_detector->out_of_bounds())
+    
+    if (!face_detector->detect_rectangle())
     {
-        imshow( "Image", face_detector->img);
-        print_status(&face_detector->img, "Face out of bounds");
-    }
-        
-    else
-    {
-        // Extract only the face
-        antispoofing_detector->face = face_detector->extract_rectangle();
-
-        // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
-        if (!face_detector->blur_detection())
+        //imshow( "Image", face_detector->img);
+        if (!face_detector->out_of_bounds())
+        //{
+        //    print_status(&face_detector->img, "Face out of bounds", false);
+        //}
+        //else
         {
-            // Make prediction for the face
-            face_detector->print_rectangle_cv(antispoofing_detector->single_prediction());
+            // Extract only the face
+            antispoofing_detector->face = face_detector->extract_rectangle();
+
+            // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
+            if (!face_detector->blur_detection())
+            {
+                // Make prediction for the face
+                face_detector->print_rectangle_cv(antispoofing_detector->single_prediction());
+            }
+            else
+            {
+                // Print the image with prediction (or "Blorred"), dimensions, rectangles of face detected and of face considered to make the prediction
+                face_detector->print_rectangle_cv();
+            } 
         }
-        else
-        {
-            // Print the image with prediction (or "Blorred"), dimensions, rectangles of face detected and of face considered to make the prediction
-            face_detector->print_rectangle_cv();
-        } 
     }
+    imshow( "Image", face_detector->img);
 }
 
 
@@ -63,22 +65,23 @@ int FinalPrediction::predict_images(int n_img, string frames_path)
             // Breaking the while loop if the frames cannot be captured
             if (camera_disconnection(bSuccess)) return 1;
 
-            //face_detector.rect= face_detector.detect_rectangle();
-
-            if (face_detector->out_of_bounds())
-                print_status(&face_detector->img, "Face out of bounds");
-            else
+            if (!face_detector->detect_rectangle())
             {
-                // Extract only the face
-                antispoofing_detector->face = face_detector->extract_rectangle();
-                                            
-                // Check if the face is blurred 
-                if (!face_detector->blur_detection())
+                if (!face_detector->out_of_bounds() && !(face_detector->ROI_dim==0))
+                    //print_status(&face_detector->img, "Face out of bounds", false);
+                //else
                 {
-                    // Save frame
-                    imwrite(frames_path + "frame" + std::to_string(i) +".jpg", antispoofing_detector->face);
-                    i++;
-                } 
+                    // Extract only the face
+                    antispoofing_detector->face = face_detector->extract_rectangle();
+                                                
+                    // Check if the face is blurred 
+                    if (!face_detector->blur_detection())
+                    {
+                        // Save frame
+                        imwrite(frames_path + "frame" + std::to_string(i) +".jpg", antispoofing_detector->face);
+                        i++;
+                    } 
+                }
             }
             imshow(window_name, face_detector->img);
         }

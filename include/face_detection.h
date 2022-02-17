@@ -25,18 +25,23 @@ class FaceDetection
         Mat extract_rectangle();
         bool blur_detection();
         void print_rectangle_cv(string pred = "Null");
+        frontal_face_detector detector;
         Mat cropedImage;
         Mat img;
         //bool blurred = false;
         VideoCapture cap;
         int ROI_dim;
         cv::Rect rect;
-        bool out_of_bounds_top();
-        bool out_of_bounds_bottom();
-        bool out_of_bounds_right();
-        bool out_of_bounds_left();
+        bool ROI_out_of_bounds_top();
+        bool ROI_out_of_bounds_bottom();
+        bool ROI_out_of_bounds_right();
+        bool ROI_out_of_bounds_left();
+        bool face_out_of_bounds_top();
+        bool face_out_of_bounds_bottom();
+        bool face_out_of_bounds_right();
+        bool face_out_of_bounds_left();
         bool out_of_bounds();
-        void detect_rectangle();
+        bool detect_rectangle();
         cv::Rect extract_ROI();
 
     private:
@@ -45,13 +50,11 @@ class FaceDetection
         dlib::cv_image<dlib::bgr_pixel> cv_mat_to_dlib();
         cv::Rect expand_rectangle(cv::Rect rect);
         Mat compute_laplacian();
-        frontal_face_detector detector;
         cv::Rect rectExp;
+        bool detected_ROI = true;
         bool blurred = false;
         int x_rect_center;
         int y_rect_center;
-        //int width_screen;
-        //int height_screen;
         const int width_screen = cap.get(CAP_PROP_FRAME_WIDTH);
         const int height_screen = cap.get(CAP_PROP_FRAME_HEIGHT);
         const int x_screen_center = width_screen/2;

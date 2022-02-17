@@ -5,17 +5,30 @@ using namespace std;
 using namespace dlib;       
         
 
-void print_status(Mat *frame, string message, bool black)
+void print_status(Mat *img, string message, bool black)
 {
+    // https://docs.opencv.org/4.x/d6/d6e/group__imgproc__draw.html#ga3d2abfcb995fd2db908c8288199dba82
+
+    int fontFace = FONT_HERSHEY_SIMPLEX;
+    double fontScale = 1;
+    int thickness = 2;
+
+    // Get boundary of the text
+    int baseline=0;
+    Size textSize = getTextSize(message, fontFace, fontScale, thickness, &baseline);
+    baseline += thickness;
+
+    // center the text
+    Point textOrg((img->cols - textSize.width)/2, (img->rows + textSize.height)/2);
+
     if (black)
     {
-        Mat black = Mat::zeros(Size(frame->cols,frame->rows),CV_8UC1);
-        putText(black, message, Point(200,200), FONT_HERSHEY_SIMPLEX, 1, Scalar(255,255,255), 2, LINE_AA);
-        black.copyTo(*frame);
+        Mat black = Mat::zeros(Size(img->cols,img->rows),CV_8UC1);
+        putText(black, message, textOrg, fontFace, fontScale, Scalar(255,255,255), thickness, LINE_AA);
+        black.copyTo(*img);
     }
     else
-        putText(*frame, message, Point(200,200), FONT_HERSHEY_SIMPLEX, 1, Scalar(255,255,255), 2, LINE_AA);
-    
+        putText(*img, message, textOrg, fontFace, fontScale, Scalar(255,255,255), thickness, LINE_AA);
 }
 
 

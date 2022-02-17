@@ -7,82 +7,59 @@ using namespace dlib;
 
 
 FaceDetection::FaceDetection(frontal_face_detector _detector, Mat _img, Mat _cropedImage, VideoCapture _cap, int _ROI_dim):
-detector(_detector), img(_img), cropedImage(_cropedImage), cap(_cap), ROI_dim(_ROI_dim)
-{
-    /*
-    cv::Rect rectExp;
-    cv::Rect rect;
-
-    int x_rect_center;
-    int y_rect_center;
-
-    
-    int width_screen = cap.get(CAP_PROP_FRAME_WIDTH);
-    int height_screen = cap.get(CAP_PROP_FRAME_HEIGHT);
-
-    
-    const int x_screen_center = width_screen/2;
-    cout << x_screen_center << endl;
-    const int y_screen_center = height_screen/2;
-    cout << y_screen_center << endl;
-    */
-    /*
-    int width_screen = cap.get(CAP_PROP_FRAME_WIDTH);
-    cout << width_screen << endl;
-    int height_screen = cap.get(CAP_PROP_FRAME_HEIGHT);
-    cout << height_screen << endl;
-    int x_screen_center = width_screen/2;
-    cout << x_screen_center << endl;
-    int y_screen_center = height_screen/2;
-    cout << y_screen_center << endl;
-    
-    // If the screen is too small the ROI will be as big as the screen otherwise it is fixed
-    if (width_screen<_ROI_dim || height_screen<_ROI_dim)
-        ROI_dim = min(width_screen, height_screen);
-    else
-        ROI_dim = _ROI_dim;
-
-    cout << ROI_dim << endl;
-    
-    
-    int x_rect_center = rect.x + rect.width/2;
-    int y_rect_center = rect.y + rect.height/2;
+detector(_detector), img(_img), cropedImage(_cropedImage), cap(_cap), ROI_dim(_ROI_dim) {};
 
 
-    */
-};
+bool FaceDetection::face_out_of_bounds_top() {return ((rect.y + rect.height) > height_screen);}
+
+bool FaceDetection::face_out_of_bounds_bottom() {return (rect.y < 0);}
+
+bool FaceDetection::face_out_of_bounds_right() {return ((rect.x + rect.width) > width_screen);}
+
+bool FaceDetection::face_out_of_bounds_left() {return (rect.x < 0);}
 
 
-bool FaceDetection::out_of_bounds_top() {return ((y_rect_center + ROI_dim/2) > height_screen);}
+bool FaceDetection::ROI_out_of_bounds_top() {return ((y_rect_center + ROI_dim/2) > height_screen);}
 
-bool FaceDetection::out_of_bounds_bottom() {return ((y_rect_center - ROI_dim/2) < 0);}
+bool FaceDetection::ROI_out_of_bounds_bottom() {return ((y_rect_center - ROI_dim/2) < 0);}
 
-bool FaceDetection::out_of_bounds_right() {return ((x_rect_center + ROI_dim/2) > width_screen);}
+bool FaceDetection::ROI_out_of_bounds_right() {return ((x_rect_center + ROI_dim/2) > width_screen);}
 
-bool FaceDetection::out_of_bounds_left() {return ((x_rect_center - ROI_dim/2) < 0);}
+bool FaceDetection::ROI_out_of_bounds_left() {return ((x_rect_center - ROI_dim/2) < 0);}
+
+
 
 bool FaceDetection::out_of_bounds()
 {   
-    detect_rectangle();
+    //detect_rectangle();
     // If the screen is too small the ROI will be as big as the screen otherwise it is fixed
     if (width_screen<ROI_dim || height_screen<ROI_dim)
         ROI_dim = min(width_screen, height_screen);
     else
         ROI_dim = ROI_dim;
 
+    //if (out_of_bounds_right() || out_of_bounds_top())
+    //    ROI_dim = 0;
     // If ROI is out of bounds in all sides or in height (such can happened in phones) or in width (such can happened in pc webcam),
     // the message of closeness to the screen is printed
-    if ((FaceDetection::out_of_bounds_top() && FaceDetection::out_of_bounds_bottom() &&
-         FaceDetection::out_of_bounds_right() && FaceDetection::out_of_bounds_left())
-        || (FaceDetection::out_of_bounds_top() && FaceDetection::out_of_bounds_bottom())
-        || (FaceDetection::out_of_bounds_right() && FaceDetection::out_of_bounds_left()))
+
+    /*
+    if ((out_of_bounds_top() && out_of_bounds_bottom() &&
+         out_of_bounds_right() && out_of_bounds_left())
+        || (out_of_bounds_top() && out_of_bounds_bottom())
+        || (out_of_bounds_right() && out_of_bounds_left()))
     {
         print_status(&img, "The face is too close to the webcam.", false);
         return 1;
     }
+    */
+
     // If the center of the face and the center of the screen are away more than the half of the
     // minimum between the width and the height of the screen, the message of non centering is printed
-    else if (abs(x_screen_center - x_rect_center) > int(min(width_screen, height_screen)/2)) //before /2
+    if ((abs(x_screen_center - x_rect_center) > int(width_screen/6)) ||
+        (abs(y_screen_center - y_rect_center) > int(height_screen/6)) ||
+        face_out_of_bounds_right() || face_out_of_bounds_left() || face_out_of_bounds_bottom() || face_out_of_bounds_top() ||
+        ROI_out_of_bounds_right() || ROI_out_of_bounds_left() || ROI_out_of_bounds_bottom() || ROI_out_of_bounds_top())
     {
         print_status(&img, "The face is not centered in the screen", false);
         return 1;
@@ -91,10 +68,13 @@ bool FaceDetection::out_of_bounds()
 }
 
 
+
 cv::Rect FaceDetection::extract_ROI()
 {    
-    return Rect(x_rect_center - ROI_dim/2, y_rect_center - ROI_dim/2, ROI_dim, ROI_dim);
-    //return Rect(rect.x - 70, rect.y - 70, rect.width + 140, rect.height + 140);
+    int x = x_rect_center - ROI_dim/2;
+    int y = y_rect_center - ROI_dim/2;
+
+    return Rect(x, y, ROI_dim, ROI_dim);
 }
 
 
@@ -104,18 +84,11 @@ Mat FaceDetection::extract_rectangle()
     rectExp = FaceDetection::extract_ROI();
     cropedImage = img(rectExp);
 
-    /*
-    VideoCapture cap;
-    cap.open(0, CAP_ANY);
-    imshow( "Image", cropedImage );
-    waitKey(5000);
-    */
-
     return cropedImage;
 }
 
 
-void FaceDetection::detect_rectangle()
+bool FaceDetection::detect_rectangle()
 {
     // http://dlib.net/webcam_face_pose_ex.cpp.html
 
@@ -130,15 +103,23 @@ void FaceDetection::detect_rectangle()
 
     if (faces.size() > 1)
     {
-        std::cerr << "More than one face" << std::endl;
-        print_status(&img, "More than one face, the first is extracted", false);
+        //std::cerr << "More than one face" << std::endl;
+        print_status(&img, "More than one face", false);
+        return 1;
     }
-
+    if (faces.size() == 0)
+    {
+        //std::cerr << "No face" << std::endl;
+        print_status(&img, "No face", false);
+        return 1;
+    }
+        
     // Convert dlib rectangle in OpenCV rectangle
     rect = FaceDetection::dlib_rectangle_to_cv(faces[0]);
 
     x_rect_center = rect.x + rect.width/2;
-    y_rect_center = rect.y + rect.height/2;  
+    y_rect_center = rect.y + rect.height/2;
+    return 0;
 }
 
 
@@ -157,14 +138,6 @@ cv::Rect FaceDetection::dlib_rectangle_to_cv(dlib::rectangle r)
     return cv::Rect(cv::Point2i(r.left(), r.top()), cv::Point2i(r.right() + 1, r.bottom() + 1));
 }
 
-/*
-cv::Rect FaceDetection::expand_rectangle(cv::Rect rect)
-{
-    // CONTROLLA OUT OF BOUNDS!!!
-
-    return Rect(rect.x - 70, rect.y - 70, rect.width + 140, rect.height + 140);
-}
-*/
 
 void FaceDetection::print_rectangle_cv(string pred)
 {
@@ -180,9 +153,9 @@ void FaceDetection::print_rectangle_cv(string pred)
 
     // Plot result of the prediction if exists otherwise plot blurred if the image is blurred
     if (pred != "Null")
-        putText(img, pred,  Point(x_screen_center - 10, y_screen_center), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+        putText(img, pred,  Point(rect.x + rect.height/2 + 2, rect.y - 4), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
     else if (blurred)
-        putText(img, "Blurred",  Point(x_screen_center - 10, y_screen_center), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+        putText(img, "Blurred",  Point(rect.x + rect.height/2 + 2, rect.y - 4), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
 
     // Plot dimension of the rectangle
     string dim = to_string(rect.width) + string("x") + to_string(rect.height);
@@ -209,19 +182,12 @@ bool FaceDetection::blur_detection()
     meanStdDev(laplacianImage, mean, stddev, Mat());
     double variance = stddev.val[0] * stddev.val[0];
 
-    double threshold = 19; //6.5 before
+    double threshold = 6.5; //6.5 before
 
     blurred = true;
 
     if (variance >= threshold)
         blurred = false;
-
-    /*
-    string text = "Not Blurry";
-
-    if (variance <= threshold)
-        text = "Blurry";
-    */
 
     return blurred;
 }
