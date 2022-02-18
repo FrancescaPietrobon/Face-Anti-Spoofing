@@ -21,10 +21,11 @@ class AntiSpoofingDetection
 {
     public:
         AntiSpoofingDetection(dnn::Net snn, Ptr<ml::RTrees> ml);
-        string single_prediction(); 
-        string multiple_prediction(string frames_path);
         Mat face;
         string pred = "Null";
+        string single_prediction(); 
+        string multiple_prediction(string frames_path);
+        
     private:
         float value_prediction();
         dnn::Net snn;
