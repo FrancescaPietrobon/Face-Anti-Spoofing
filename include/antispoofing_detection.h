@@ -20,11 +20,11 @@ using namespace dlib;
 class AntiSpoofingDetection
 {
     public:
-        AntiSpoofingDetection(Mat face, dnn::Net snn, Ptr<ml::RTrees> ml, string pred);
+        AntiSpoofingDetection(dnn::Net snn, Ptr<ml::RTrees> ml);
         string single_prediction(); 
         string multiple_prediction(string frames_path);
         Mat face;
-        string pred;
+        string pred = "Null";
     private:
         float value_prediction();
         dnn::Net snn;

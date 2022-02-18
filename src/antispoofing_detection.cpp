@@ -5,8 +5,8 @@ using namespace std;
 using namespace dlib;
 
 
-AntiSpoofingDetection::AntiSpoofingDetection(Mat _face, dnn::Net _snn, Ptr<ml::RTrees> _ml, string _pred): //CONTROLLA _pred
-face(_face), snn(_snn), ml(_ml), pred("Null") {};
+AntiSpoofingDetection::AntiSpoofingDetection(dnn::Net _snn, Ptr<ml::RTrees> _ml):
+snn(_snn), ml(_ml) {};
 
 
 string AntiSpoofingDetection::single_prediction()
@@ -23,10 +23,10 @@ string AntiSpoofingDetection::single_prediction()
     return output;
 }
 
+
 float AntiSpoofingDetection::value_prediction()
 {
     // SNN prediction
-    //image, output size, mean values to subtract from channels, swap first and last channels, cropped after resize or not, depth of output blob
     Mat blob = dnn::blobFromImage(face, 1, Size(256, 256), Scalar(0,0,0), true, false, CV_32F);
     snn.setInput(blob);
     Mat features = snn.forward();
@@ -37,22 +37,28 @@ float AntiSpoofingDetection::value_prediction()
     return prediction;
 }
 
+
 string AntiSpoofingDetection::multiple_prediction(string frames_path)
 {
     int real = 0;
     int fake = 0;
 
+    string frame;
+
     for (int i=1; i<50; i++)
     {
-        string frame = frames_path + "frame" + std::to_string(i) +".jpg";
+        //Extract the images saved
+        frame = frames_path + "frame" + std::to_string(i) +".jpg";
         Mat face = imread(frame, IMREAD_COLOR);
+
+        // Make the prediction for every image
         float prediction = AntiSpoofingDetection::value_prediction();
         if (prediction == 0)
             real += 1;
         else
             fake += 1;
     }
-
+    // Take the one with higher number of occurences
     if (real > fake)
         return "Real";
     else

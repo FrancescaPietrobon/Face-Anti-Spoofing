@@ -21,14 +21,12 @@ using namespace dlib;
 class FaceDetection
 {
     public:
-        FaceDetection(frontal_face_detector detector, Mat img, Mat cropedImage, VideoCapture cap, int ROI_dim);
+        FaceDetection(frontal_face_detector detector, VideoCapture cap, int ROI_dim);
         Mat extract_rectangle();
         bool blur_detection();
         void print_rectangle_cv(string pred = "Null");
         frontal_face_detector detector;
-        Mat cropedImage;
         Mat img;
-        //bool blurred = false;
         VideoCapture cap;
         int ROI_dim;
         cv::Rect rect;
@@ -51,6 +49,7 @@ class FaceDetection
         cv::Rect expand_rectangle(cv::Rect rect);
         Mat compute_laplacian();
         cv::Rect rectExp;
+        Mat cropedImage;
         bool detected_ROI = true;
         bool blurred = false;
         int x_rect_center;
