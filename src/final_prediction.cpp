@@ -14,20 +14,16 @@ face_detector(_face_detector), antispoofing_detector(_antispoofing_detector) {};
 
 void FinalPrediction::predict_image()
 {
-    
-    if (!face_detector->detect_rectangle())
+    // If the face is detected
+    if (face_detector->detect_rectangle())
     {
-        //imshow( "Image", face_detector->img);
+        // If the face detected is not out of bounds
         if (!face_detector->out_of_bounds())
-        //{
-        //    print_status(&face_detector->img, "Face out of bounds", false);
-        //}
-        //else
         {
             // Extract only the face
             antispoofing_detector->face = face_detector->extract_rectangle();
 
-            // If the face is not blurred print make the prediction and print them, otherwise print "Blurred"
+            // If the face is not blurred, make the prediction and print them, otherwise print "Blurred"
             if (!face_detector->blur_detection())
             {
                 // Make prediction for the face
@@ -44,6 +40,24 @@ void FinalPrediction::predict_image()
 }
 
 
+int FinalPrediction::predict_realtime()
+{
+    while (true)
+    {
+        // Read a new frame from video 
+        bool bSuccess = face_detector->cap.read(face_detector->img);
+
+        // Breaking the while loop if the frames cannot be captured
+        if (camera_disconnection(bSuccess)) return 1;
+            
+        // Make the prediction
+        FinalPrediction::predict_image();
+
+        // Check when close webcam
+        if (close_webcam()) return 1;
+    }
+    return 0;
+} 
 
 
 int FinalPrediction::predict_images(int n_img, string frames_path)
@@ -65,11 +79,11 @@ int FinalPrediction::predict_images(int n_img, string frames_path)
             // Breaking the while loop if the frames cannot be captured
             if (camera_disconnection(bSuccess)) return 1;
 
-            if (!face_detector->detect_rectangle())
+            // If the face is detected
+            if (face_detector->detect_rectangle())
             {
-                if (!face_detector->out_of_bounds() && !(face_detector->ROI_dim==0))
-                    //print_status(&face_detector->img, "Face out of bounds", false);
-                //else
+                // If the face detected is not out of bounds
+                if (!face_detector->out_of_bounds())// && !(face_detector->ROI_dim==0))
                 {
                     // Extract only the face
                     antispoofing_detector->face = face_detector->extract_rectangle();
@@ -87,6 +101,7 @@ int FinalPrediction::predict_images(int n_img, string frames_path)
         }
         else
         {
+            // If there is no prediction print "Performing prediction..." otherwise print the overall prediction
             if (antispoofing_detector->pred == "Null")
                 print_status(&face_detector->img, "Performing prediction...");
             else
@@ -94,6 +109,7 @@ int FinalPrediction::predict_images(int n_img, string frames_path)
 
             imshow(window_name, face_detector->img);
 
+            // Compute the overall prediction
             antispoofing_detector->pred = antispoofing_detector->multiple_prediction(frames_path);
         }
 
@@ -101,28 +117,4 @@ int FinalPrediction::predict_images(int n_img, string frames_path)
         if (close_webcam()) return 1;
     }
     return 0;
-}
-
-
-int FinalPrediction::predict_realtime()
-{
-    while (true)
-    {
-        // Read a new frame from video 
-        bool bSuccess = face_detector->cap.read(face_detector->img); 
-
-        // Breaking the while loop if the frames cannot be captured
-        if (camera_disconnection(bSuccess)) return 1;
-            
-        // Make the prediction
-        FinalPrediction::predict_image();
-
-        // Check when close webcam
-        if (close_webcam()) return 1;
-    }
-    return 0;
-}  
-
-
-
-        
+}       

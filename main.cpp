@@ -37,8 +37,6 @@ int main(int argc, char* argv[])
     int deviceID = 0;       // 0 = open default camera
     int apiID = CAP_ANY;    // 0 = autodetect default API
 
-    int n_img = 50;
-
     // Load SNN
     dnn::Net snn = cv::dnn::readNetFromTensorflow(SNN_weights);
 
@@ -53,36 +51,25 @@ int main(int argc, char* argv[])
     // Open the default video camera
     VideoCapture cap;
     cap.open(deviceID, apiID);
-    Mat img;
-    Mat face;
-    Mat cropedImage;
-    //bool  blurred;
-    string pred = "Null";
+
     int ROI_dim = 350;
+    int n_img = 50;
 
-    // PASS BY REFERENCE CAP TO HAVE SETTED CAP.OPEN(...)
-    FaceDetection face_detector(detector, img, cropedImage, cap, ROI_dim);
-    AntiSpoofingDetection antispoofing_detector(face, snn, ml, pred);
-
+    FaceDetection face_detector(detector, cap, ROI_dim);
+    AntiSpoofingDetection antispoofing_detector(snn, ml);
+    FinalPrediction final_prediction(&face_detector, &antispoofing_detector);
 
     if (cl.search(2, "-p", "--path"))
     {
         face_detector.img = imread(img_path, IMREAD_COLOR);
-
-        FinalPrediction final_prediction(&face_detector, &antispoofing_detector);
         
         // Make the prediction
         final_prediction.predict_image();
-        //imshow( "Image", face_detector.img);
+
         waitKey(5000);
     }
     else
     {
-        // Open selected camera using selected API
-        //cap.open(deviceID, apiID);
-
-        FinalPrediction final_prediction(&face_detector, &antispoofing_detector);
-
         // Check if realtime prediction such as example or if prediction of multiple images simultaneously
         if (cl.search(2, "-e", "--example"))
             final_prediction.predict_realtime();
@@ -91,9 +78,7 @@ int main(int argc, char* argv[])
 
     } 
     
-
     return 0;
-
 }
 
 
