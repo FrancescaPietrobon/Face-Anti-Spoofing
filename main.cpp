@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <cstdio>
 
 #include <dlib/opencv.h>
 #include <opencv2/highgui/highgui.hpp>
@@ -11,7 +12,9 @@
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
 
-#include <nlohmann/json.hpp>
+#include <mpi.h>
+
+//#include <json/json.h>
 
 #include "GetPot"
 
@@ -24,11 +27,18 @@
 using namespace std;
 using namespace cv;
 using namespace dlib;
-using json = nlohmann::json;
 
 
 int main(int argc, char* argv[])
 {
+    MPI_Init (&argc, &argv);
+    int rank, size;
+    MPI_Comm_size (MPI_COMM_WORLD, &size);
+    MPI_Comm_rank (MPI_COMM_WORLD, &rank);
+    printf ("Hello form process %d of %d\n", rank, size);
+    MPI_Finalize();
+
+
     GetPot cl(argc, argv);
 
     /*
@@ -37,13 +47,6 @@ int main(int argc, char* argv[])
 
     cout << root["frames_path"] << endl;
     */
-    
-    // read a JSON file
-    std::ifstream ifs("data.json");
-    json j = json::parse(ifs);
-    ifs.rdbuf();
-    //cout << j << endl;
-    
 
     string frames_path = "/home/fra/Project/Frames/";
     string SNN_weights = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb";
