@@ -12,7 +12,7 @@
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
 
-#include <mpi.h>
+#include <mpi/mpi.h>
 
 //#include <json/json.h>
 
