@@ -29,17 +29,21 @@ add_library(Utilities src/utilities.cpp)
 
 find_package(OpenCV REQUIRED)
 find_package(dlib REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories(${dlib_INCLUDE_DIRS})
+include_directories(${json_INCLUDE_DIRS})
 
 add_executable(FaceAntiSpoofing main.cpp)
 
 target_link_libraries(FaceAntiSpoofing ${OpenCV_LIBS} )
 target_link_libraries(FaceAntiSpoofing ${dlib_LIBS})
+target_link_libraries(FaceAntiSpoofing ${json_LIBS})
 target_link_libraries(FaceAntiSpoofing AntiSpoofingDetection)
 target_link_libraries(FaceAntiSpoofing FaceDetection)
 target_link_libraries(FaceAntiSpoofing Prediction)
 target_link_libraries(FaceAntiSpoofing Utilities)
+#target_link_libraries(FaceAntiSpoofing PRIVATE nlohmann_json::nlohmann_json)
 #target_link_libraries(FaceAntiSpoofing Parameters)
 

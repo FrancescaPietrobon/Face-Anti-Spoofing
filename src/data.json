@@ -1,0 +1,13 @@
+{
+	"frames_path" : "/home/fra/Project/Frames/",
+
+	"SNN_weights" : "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb",
+
+	"ML_weights" : "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml",
+
+	"face_detect" : "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat",
+
+	"example_path" : "/home/fra/Scaricati/2022-02-08-163449.jpg",
+
+	"deviceID" : 0
+}
