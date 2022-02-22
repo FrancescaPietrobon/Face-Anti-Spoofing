@@ -30,15 +30,14 @@ using namespace dlib;
 
 
 int main(int argc, char* argv[])
-{
-    MPI_Init (&argc, &argv);
-    int rank, size;
-    MPI_Comm_size (MPI_COMM_WORLD, &size);
-    MPI_Comm_rank (MPI_COMM_WORLD, &rank);
-    printf ("Hello form process %d of %d\n", rank, size);
-    MPI_Finalize();
+{  
+    MPI_Init (NULL, NULL);
+    int world_rank, world_size;
+    MPI_Comm_size (MPI_COMM_WORLD, &world_size);
+    MPI_Comm_rank (MPI_COMM_WORLD, &world_rank);
 
-
+    cout << world_rank << endl;
+    
     GetPot cl(argc, argv);
 
     /*
@@ -71,38 +70,63 @@ int main(int argc, char* argv[])
 
     // Open the default video camera
     VideoCapture cap;
-    cap.open(deviceID, apiID);
+    if (world_rank == 0 || (world_rank == world_size))
+        cap.open(deviceID, apiID);
 
     int ROI_dim = 350;
     int n_img = 50;
 
     FaceDetection face_detector(detector, cap, ROI_dim);
-    AntiSpoofingDetection antispoofing_detector(snn, ml);
+    AntiSpoofingDetection antispoofing_detector(snn, ml, n_img, frames_path, world_rank, world_size);
     FinalPrediction final_prediction(&face_detector, &antispoofing_detector);
+
+    cout << "Pre choice" << endl;
 
     if (cl.search(2, "-p", "--path"))
     {
-        face_detector.img = imread(img_path, IMREAD_COLOR);
+        if (world_rank == 0)
+        {
+            face_detector.img = imread(img_path, IMREAD_COLOR);
         
-        // Make the prediction
-        final_prediction.predict_image();
+            // Make the prediction
+            final_prediction.predict_image();
 
-        waitKey(5000);
+            waitKey(5000);
+        }
     }
     else
-    {
+    { cout << "Pre realtime or multiple" << endl;
         // Check if realtime prediction such as example or if prediction of multiple images simultaneously
         if (cl.search(2, "-e", "--example"))
-            final_prediction.predict_realtime();
+        {
+            if (world_rank == 0)
+                final_prediction.predict_realtime();
+            cout << "Example" << endl;
+        }
         else
-            final_prediction.predict_images(n_img, frames_path);
+        {
+            cout << "Pre predicting images" << endl;
+            final_prediction.predict_images(frames_path);
+        }
 
     } 
-    
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Finalize();
     return 0;
 }
 
 
+
+/*
+//MPI_Init (&argc, &argv);
+    MPI_Init (NULL, NULL);
+    int world_rank, world_size;
+    MPI_Comm_size (MPI_COMM_WORLD, &world_rank);
+    MPI_Comm_rank (MPI_COMM_WORLD, &world_size);
+    //printf ("Hello form process %d of %d\n", world_rank, world_size);
+    MPI_Finalize();
+*/
 
 
 //windowWidth=cv2.getWindowImageRect("myWindow")[2]
