@@ -14,7 +14,7 @@
 
 #include <mpi/mpi.h>
 
-//#include <json/json.h>
+#include <json/json.h>
 
 #include "GetPot"
 
@@ -36,16 +36,17 @@ int main(int argc, char* argv[])
     MPI_Comm_size (MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank (MPI_COMM_WORLD, &world_rank);
 
-    cout << world_rank << endl;
+    cout << "World_rank = " + to_string(world_rank) << endl;
+    cout << "World_size = " + to_string(world_size) << endl;
     
     GetPot cl(argc, argv);
 
-    /*
-    std::ifstream config_doc("data.json", std::ifstream::binary);
-    config_doc >> root;
+    //Json::Value root;
+    //std::ifstream config_doc("data.json", std::ifstream::binary);
+    //config_doc >> root;
 
-    cout << root["frames_path"] << endl;
-    */
+    //cout << root["frames_path"] << endl;
+    
 
     string frames_path = "/home/fra/Project/Frames/";
     string SNN_weights = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb";
@@ -68,6 +69,259 @@ int main(int argc, char* argv[])
     shape_predictor pose_model;
     deserialize(face_detect) >> pose_model;
 
+    VideoCapture cap;
+    if (world_rank == 0)
+    {
+        // Open the default video camera
+        cap.open(deviceID, apiID);
+    }
+
+    int ROI_dim = 350;
+    int n_img = 100;
+    int elements_per_proc = int(n_img / world_size);
+    cout << "Elements per processor = " + to_string(elements_per_proc) << endl;
+    int tot_real = 0;
+    Mat image;
+
+    FaceDetection face_detector(detector, cap, ROI_dim);
+    AntiSpoofingDetection antispoofing_detector(snn, ml, n_img, frames_path, world_rank, world_size);
+    FinalPrediction final_prediction(&face_detector, &antispoofing_detector);
+
+    
+        
+    // To see the prediction of a single image
+    if (cl.search(2, "-p", "--path") && world_rank == 0)
+    {
+        // Read the image
+        face_detector.img = imread(img_path, IMREAD_COLOR);
+            
+        // Perform the prediction
+        final_prediction.predict_image();
+
+        waitKey(5000);
+    }
+    // To see a realtime prediction 
+    else
+    {
+        if (cl.search(2, "-e", "--example")  && world_rank == 0)
+        {
+            // Perform the realtime prediction
+            final_prediction.predict_realtime();
+        }
+        // To collect multiple frames and then make the final prediction
+        else 
+        {
+            string window_name = "Webcam";
+            if (world_size == 1)
+            {
+                final_prediction.predict_images(frames_path);
+            }
+            else
+            {
+                cout << "World_rank = " + to_string(world_rank) << endl;
+
+                int i = 1;
+
+                // Until the decided number of frames is not reached collect frames
+                while (true)
+                {
+                    if (world_rank == 0 && i <= n_img)
+                    {
+                        cout << i << endl;
+
+                        // Read a new frame from video
+                        bool bSuccess = cap.read(face_detector.img);
+
+                        // Breaking the while loop if the frames cannot be captured
+                        if (camera_disconnection(bSuccess)) break;
+
+                        // If the face is detected
+                        if (face_detector.detect_rectangle())
+                        {
+                            // If the face detected is not out of bounds
+                            if (!face_detector.out_of_bounds())
+                            {
+                                // Extract only the face
+                                antispoofing_detector.face = face_detector.extract_rectangle();
+                                                                            
+                                // Check if the face is blurred 
+                                if (!face_detector.blur_detection())
+                                {
+                                    // Save frame
+                                    imwrite(frames_path + "frame" + std::to_string(i) +".jpg", antispoofing_detector.face);
+                                    i++;
+                                } 
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // After acquisition of the images required print "Performing prediction..."
+                        if (i == n_img + 1)
+                        {
+                            //image = print_image(cap, "Performing prediction...");
+                            print_status(&face_detector.img, "Performing prediction...");
+                            i++;
+                            waitKey(100);
+                        }
+                        else
+                        {
+                            // Create the vector of image indexes. Its total size will be the number of elements
+                            // per process times the number of processes
+                            int *img_index = NULL;
+                            if (world_rank == 0) {
+                                img_index = antispoofing_detector.create_indexes(elements_per_proc * world_size);
+                            }
+
+                            // Create a buffer that will hold a subset of indexes
+                            int *sub_indexes = (int *)malloc(sizeof(int) * elements_per_proc);
+
+                            cout << "Pre scatter" << endl;
+                            // Scatter the indexes from the root process to all processes
+                            MPI_Scatter(img_index, elements_per_proc, MPI_INT, sub_indexes,
+                                        elements_per_proc, MPI_INT, 0, MPI_COMM_WORLD);
+
+                            // Compute the number of real images of the subset
+                            int count_real = antispoofing_detector.compute_real(sub_indexes, elements_per_proc);
+
+                            // Gather all partial averages down to the root process
+                            int *sum_real = NULL;
+                            if (world_rank == 0)
+                                sum_real = (int *)malloc(sizeof(int) * world_size);
+                                            
+                            cout << "Pre Gather" << endl;
+                            MPI_Gather(&count_real, 1, MPI_INT, sum_real, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+                            cout << "Pre compute_sum_real" << endl;
+                            // Compute the total average of all numbers.
+                            if (world_rank == 0)
+                            {
+                                tot_real = antispoofing_detector.compute_sum_real(sum_real, world_size);
+
+                                cout << tot_real << endl;
+                                // Take the one with higher number of occurences
+                                if (tot_real > n_img/2)
+                                    antispoofing_detector.pred = "Real";
+                                    
+                                else
+                                    antispoofing_detector.pred = "Fake";
+                                cout << antispoofing_detector.pred << endl;
+                                print_status(&face_detector.img, antispoofing_detector.pred);
+                                
+                                imshow(window_name, face_detector.img);
+                                waitKey(5000);
+                            }
+                                
+                            cout << "Pre deallocation" << endl;
+                            // Clean up
+                            if (world_rank == 0) {
+                                free(img_index);
+                                free(sum_real);
+                            }
+                            free(sub_indexes);                            
+                                        
+                            cout << "After deallocation" << endl;
+                            break;
+                        }
+                    }
+                    imshow(window_name, face_detector.img);
+
+                    if (close_webcam()) break; 
+                }
+            }
+        }
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Finalize();
+
+    return 0;
+
+}
+
+
+/*
+    else
+    {
+        string window_name = "Webcam";
+        int i = 1;
+
+        while (true)
+        {
+            // Until the decided number of frames is not reached collect frames
+            if (i <= antispoofing_detector->n_img)
+            {
+                cout << i << endl;
+
+                // Read a new frame from video
+                bool bSuccess = face_detector->cap.read(face_detector->img);
+
+                // Breaking the while loop if the frames cannot be captured
+                if (camera_disconnection(bSuccess)) return 1;
+
+                // If the face is detected
+                if (face_detector->detect_rectangle())
+                {
+                    // If the face detected is not out of bounds
+                    if (!face_detector->out_of_bounds())// && !(face_detector->ROI_dim==0))
+                    {
+                        // Extract only the face
+                        antispoofing_detector->face = face_detector->extract_rectangle();
+                                                            
+                        // Check if the face is blurred 
+                        if (!face_detector->blur_detection())
+                        {
+                            // Save frame
+                            imwrite(frames_path + "frame" + std::to_string(i) +".jpg", antispoofing_detector->face);
+                            i++;
+                        } 
+                    }
+                }
+                
+            }
+            else
+            {
+                cout << "Fine while" << endl;
+                // After acquisition of the images required print "Performing prediction..."
+                if (i == antispoofing_detector->n_img + 1)
+                {
+                    print_status(&face_detector->img, "Performing prediction...");
+                    i++;
+                    waitKey(500);
+                }
+                else
+                {
+                    // If there is no prediction compute it
+                    if (antispoofing_detector->pred == "Null")
+                    {
+                        cout << "Peroforming pred" << endl;
+                        // Compute the overall prediction
+                        antispoofing_detector->pred = antispoofing_detector->multiple_prediction();
+                    }
+                    else
+                    {
+                        // Print the prediction
+                        print_status(&face_detector->img, antispoofing_detector->pred);
+                    }
+                }
+            }
+            
+            imshow(window_name, face_detector->img);
+
+            // Check when close webcam
+            if (close_webcam()) return 1;
+        }
+
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Finalize();
+
+    return 0;
+
+}
+*/
+    /*
     // Open the default video camera
     VideoCapture cap;
     if (world_rank == 0 || (world_rank == world_size))
@@ -110,11 +364,10 @@ int main(int argc, char* argv[])
         }
 
     } 
+    */
 
-    MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Finalize();
-    return 0;
-}
+    
+
 
 
 

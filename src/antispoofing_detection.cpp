@@ -40,12 +40,39 @@ float AntiSpoofingDetection::value_prediction()
 }
 
 
-string AntiSpoofingDetection::multiple_prediction()
+string AntiSpoofingDetection::base_multiple_prediction()
+{
+    int real = 0;
+    int fake = 0;
+
+    string frame;
+
+    for (int i=1; i<n_img; i++)
+    {
+        //Extract the images saved
+        frame = frames_path + "frame" + std::to_string(i) +".jpg";
+        Mat face = imread(frame, IMREAD_COLOR);
+
+        // Make the prediction for every image
+        float prediction = AntiSpoofingDetection::value_prediction(); //TO PARALLELIZE
+        if (prediction == 0)
+            real += 1;
+        else
+            fake += 1;
+    }
+    // Take the one with higher number of occurences
+    if (real > fake)
+        return "Real";
+    else
+        return "Fake";
+}
+
+
+string AntiSpoofingDetection::multiple_prediction() // to remove after cleaning parallelization
 {
     int elements_per_proc = int(n_img / world_size);
 
     int tot_real = 0;
-    string frame;
 
     cout << world_rank << endl;
     // Create the vector of image indexes. Its total size will be the number of elements
@@ -87,50 +114,19 @@ string AntiSpoofingDetection::multiple_prediction()
     }
     free(sub_indexes);
     
-
     cout << "After deallocation" << endl;
-    
 
     // Take the one with higher number of occurences
-    if (tot_real > n_img)
+    if (tot_real > n_img/2)
         return "Real";
     else
         return "Fake";
-    
-    
-    /*
-    int real = 0;
-    int fake = 0;
-
-    string frame;
-
-    for (int i=1; i<n_img; i++)
-    {
-        //Extract the images saved
-        frame = frames_path + "frame" + std::to_string(i) +".jpg";
-        Mat face = imread(frame, IMREAD_COLOR);
-
-        // Make the prediction for every image
-        float prediction = AntiSpoofingDetection::value_prediction(); //TO PARALLELIZE
-        if (prediction == 0)
-            real += 1;
-        else
-            fake += 1;
-    }
-    // Take the one with higher number of occurences
-    if (real > fake)
-        return "Real";
-    else
-        return "Fake";
-    */
-
-    //MPI_Finalize();
 }
 
 
 int* AntiSpoofingDetection::create_indexes(int num_elements)
 {
-    int *img_index = (int *)malloc(sizeof(float) * num_elements);
+    int *img_index = (int *)malloc(sizeof(int) * num_elements);
     
     for (int i = 0; i < num_elements; i++) {
         img_index[i] = i+1;
@@ -145,18 +141,32 @@ int AntiSpoofingDetection::compute_real(int *sub_indexes, int elements_per_proc)
 {
     int real = 0;
     string frame;
+    Mat face;
+    Mat blob;
+    Mat features;
+    float prediction;
 
     for (int i=0; i<elements_per_proc; i++)
     {
         //Extract the images saved
         frame = frames_path + "frame" + std::to_string(sub_indexes[i]) +".jpg";
-        Mat face = imread(frame, IMREAD_COLOR);
+        face = imread(frame, IMREAD_COLOR);
 
         // Make the prediction for every image
-        float prediction = AntiSpoofingDetection::value_prediction();
+        //float prediction = AntiSpoofingDetection::value_prediction();
+
+        // SNN prediction
+        blob = dnn::blobFromImage(face, 1, Size(256, 256), Scalar(0,0,0), true, false, CV_32F);
+        snn.setInput(blob);
+        features = snn.forward();
+
+        // ML Model prediction
+        prediction = ml->predict(features);
+
         if (prediction == 0)
             real += 1;
     }
+    cout << "Number of real images = " + to_string(real) << endl;
     return real;
 }
 

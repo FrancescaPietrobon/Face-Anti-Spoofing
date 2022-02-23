@@ -103,7 +103,6 @@ int FinalPrediction::predict_images(string frames_path)
         }
         else
         {
-            cout << "Fine while" << endl;
             // After acquisition of the images required print "Performing prediction..."
             if (i == antispoofing_detector->n_img + 1)
             {
@@ -118,7 +117,7 @@ int FinalPrediction::predict_images(string frames_path)
                 {
                     cout << "Peroforming pred" << endl;
                     // Compute the overall prediction
-                    antispoofing_detector->pred = antispoofing_detector->multiple_prediction();
+                    antispoofing_detector->pred = antispoofing_detector->base_multiple_prediction();
                 }
                 else
                 {

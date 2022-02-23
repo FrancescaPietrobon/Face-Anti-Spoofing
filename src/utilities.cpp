@@ -32,6 +32,31 @@ void print_status(Mat *img, string message, bool black)
 }
 
 
+/*
+Mat print_image(VideoCapture cap, string message)
+{
+    // https://docs.opencv.org/4.x/d6/d6e/group__imgproc__draw.html#ga3d2abfcb995fd2db908c8288199dba82
+
+    int fontFace = FONT_HERSHEY_SIMPLEX;
+    double fontScale = 1;
+    int thickness = 2;
+
+    // Get boundary of the text
+    int baseline=0;
+    Size textSize = getTextSize(message, fontFace, fontScale, thickness, &baseline);
+    baseline += thickness;
+
+    // center the text
+    Point textOrg((cap.width - textSize.width)/2, (cap.height + textSize.height)/2);
+
+    Mat black = Mat::zeros(Size(cap.width,cap.height),CV_8UC1);
+    putText(black, message, textOrg, fontFace, fontScale, Scalar(255,255,255), thickness, LINE_AA);
+    
+    return black;
+}
+*/
+
+
 bool camera_disconnection(bool bSuccess)
 {
     // Breaking the while loop if the frames cannot be captured

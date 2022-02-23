@@ -26,13 +26,14 @@ class AntiSpoofingDetection
         string frames_path;
         string pred = "Null";
         string single_prediction(); 
-        string multiple_prediction();
-        
-    private:
-        float value_prediction();
+        string multiple_prediction(); //to remove
+        string base_multiple_prediction();
         int *create_indexes(int num_elements);
         int compute_real(int *sub_indexes, int elements_per_proc);
         int compute_sum_real(int *sum_real, int world_size);
+        
+    private:
+        float value_prediction();
         dnn::Net snn;
         Ptr<ml::RTrees> ml;
         int world_rank;

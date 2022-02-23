@@ -24,5 +24,7 @@ bool camera_disconnection(bool bSuccess);
 
 bool close_webcam();
 
+//Mat print_image(VideoCapture cap, string message);
+
 
 #endif
