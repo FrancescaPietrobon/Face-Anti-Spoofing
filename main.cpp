@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
     }
 
     int ROI_dim = 350;
-    int n_img = 100;
+    int n_img = 50;
     int elements_per_proc = int(n_img / world_size);
     cout << "Elements per processor = " + to_string(elements_per_proc) << endl;
     int tot_real = 0;
@@ -114,12 +114,20 @@ int main(int argc, char* argv[])
             string window_name = "Webcam";
             if (world_size == 1)
             {
+                auto start_NoPar = chrono::high_resolution_clock::now();
+                
                 final_prediction.predict_images(frames_path);
+
+                auto stop_NoPar = chrono::high_resolution_clock::now();
+                auto duration_NoPar = chrono::duration_cast<chrono::milliseconds>(stop_NoPar - start_NoPar);
+                cout << "Time taken to load Non parallel: "
+                    << duration_NoPar.count() << " milliseconds" << endl;
             }
             else
             {
                 cout << "World_rank = " + to_string(world_rank) << endl;
 
+                auto start_Par = chrono::high_resolution_clock::now();
                 int i = 1;
 
                 // Until the decided number of frames is not reached collect frames
@@ -127,7 +135,7 @@ int main(int argc, char* argv[])
                 {
                     if (world_rank == 0 && i <= n_img)
                     {
-                        cout << i << endl;
+                        //cout << i << endl;
 
                         // Read a new frame from video
                         bool bSuccess = cap.read(face_detector.img);
@@ -170,13 +178,13 @@ int main(int argc, char* argv[])
                             // per process times the number of processes
                             int *img_index = NULL;
                             if (world_rank == 0) {
-                                img_index = antispoofing_detector.create_indexes(elements_per_proc * world_size);
+                                img_index = antispoofing_detector.create_indexes(elements_per_proc, world_size);
                             }
 
                             // Create a buffer that will hold a subset of indexes
-                            int *sub_indexes = (int *)malloc(sizeof(int) * elements_per_proc);
+                            int *sub_indexes = new int[elements_per_proc];
 
-                            cout << "Pre scatter" << endl;
+                            //cout << "Pre scatter" << endl;
                             // Scatter the indexes from the root process to all processes
                             MPI_Scatter(img_index, elements_per_proc, MPI_INT, sub_indexes,
                                         elements_per_proc, MPI_INT, 0, MPI_COMM_WORLD);
@@ -187,40 +195,40 @@ int main(int argc, char* argv[])
                             // Gather all partial averages down to the root process
                             int *sum_real = NULL;
                             if (world_rank == 0)
-                                sum_real = (int *)malloc(sizeof(int) * world_size);
+                                sum_real = new int[world_size];
                                             
-                            cout << "Pre Gather" << endl;
+                            //cout << "Pre Gather" << endl;
                             MPI_Gather(&count_real, 1, MPI_INT, sum_real, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-                            cout << "Pre compute_sum_real" << endl;
+                            //cout << "Pre compute_sum_real" << endl;
                             // Compute the total average of all numbers.
                             if (world_rank == 0)
                             {
                                 tot_real = antispoofing_detector.compute_sum_real(sum_real, world_size);
 
-                                cout << tot_real << endl;
+                                //cout << tot_real << endl;
                                 // Take the one with higher number of occurences
                                 if (tot_real > n_img/2)
                                     antispoofing_detector.pred = "Real";
                                     
                                 else
                                     antispoofing_detector.pred = "Fake";
-                                cout << antispoofing_detector.pred << endl;
+                                //cout << antispoofing_detector.pred << endl;
                                 print_status(&face_detector.img, antispoofing_detector.pred);
                                 
                                 imshow(window_name, face_detector.img);
                                 waitKey(5000);
                             }
                                 
-                            cout << "Pre deallocation" << endl;
+                            //cout << "Pre deallocation" << endl;
                             // Clean up
                             if (world_rank == 0) {
-                                free(img_index);
-                                free(sum_real);
+                                delete(img_index);
+                                delete(sum_real);
                             }
-                            free(sub_indexes);                            
+                            delete(sub_indexes);                            
                                         
-                            cout << "After deallocation" << endl;
+                            //cout << "After deallocation" << endl;
                             break;
                         }
                     }
@@ -228,6 +236,10 @@ int main(int argc, char* argv[])
 
                     if (close_webcam()) break; 
                 }
+                auto stop_Par = chrono::high_resolution_clock::now();
+                auto duration_Par = chrono::duration_cast<chrono::milliseconds>(stop_Par - start_Par);
+                cout << "Time taken to load parallel: "
+                    << duration_Par.count() << " milliseconds" << endl;
             }
         }
     }

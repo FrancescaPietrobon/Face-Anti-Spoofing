@@ -73,7 +73,7 @@ int FinalPrediction::predict_images(string frames_path)
         // Until the decided number of frames is not reached collect frames
         if (i <= antispoofing_detector->n_img)
         {
-            cout << i << endl;
+            //cout << i << endl;
 
             // Read a new frame from video
             bool bSuccess = face_detector->cap.read(face_detector->img);
@@ -115,7 +115,7 @@ int FinalPrediction::predict_images(string frames_path)
                 // If there is no prediction compute it
                 if (antispoofing_detector->pred == "Null")
                 {
-                    cout << "Peroforming pred" << endl;
+                    //cout << "Performing pred" << endl;
                     // Compute the overall prediction
                     antispoofing_detector->pred = antispoofing_detector->base_multiple_prediction();
                 }

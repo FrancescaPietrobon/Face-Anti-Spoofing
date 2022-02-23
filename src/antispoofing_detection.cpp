@@ -79,11 +79,11 @@ string AntiSpoofingDetection::multiple_prediction() // to remove after cleaning 
     // per process times the number of processes
     int *img_index = NULL;
     if (world_rank == 0) {
-        img_index = create_indexes(elements_per_proc * world_size);
+        img_index = create_indexes(elements_per_proc, world_size);
     }
 
     // Create a buffer that will hold a subset of indexes
-    int *sub_indexes = (int *)malloc(sizeof(int) * elements_per_proc);
+    int *sub_indexes = new int[elements_per_proc];
 
     cout << "Pre scatter" << endl;
     // Scatter the indexes to all processes
@@ -96,7 +96,7 @@ string AntiSpoofingDetection::multiple_prediction() // to remove after cleaning 
     // Gather all partial averages down to the root process
     int *sum_real = NULL;
     if (world_rank == 0)
-        sum_real = (int *)malloc(sizeof(int) * world_size);
+        sum_real = new int[world_size];
         
     cout << "Pre Gather" << endl;
     MPI_Gather(&count_real, 1, MPI_INT, sum_real, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -109,10 +109,10 @@ string AntiSpoofingDetection::multiple_prediction() // to remove after cleaning 
     cout << "Pre deallocation" << endl;
     // Clean up
     if (world_rank == 0) {
-        free(img_index);
-        free(sum_real);
+        delete(img_index);
+        delete(sum_real);
     }
-    free(sub_indexes);
+    delete(sub_indexes);
     
     cout << "After deallocation" << endl;
 
@@ -124,8 +124,26 @@ string AntiSpoofingDetection::multiple_prediction() // to remove after cleaning 
 }
 
 
-int* AntiSpoofingDetection::create_indexes(int num_elements)
+int* AntiSpoofingDetection::create_indexes(int elements_per_proc, int world_size)
 {
+    /*
+    int* img_indexes = new int[world_size * elements_per_proc];
+     
+    int count = 0;
+    for (int i = 0; i < world_size; i++)
+        for (int j = 0; j < elements_per_proc; j++)
+            *(img_indexes + i * elements_per_proc + j) = ++count;
+    */
+
+    int* img_indexes = new int[elements_per_proc * world_size];
+     
+    int count = 0;
+    for (int i = 0; i < elements_per_proc; i++)
+        for (int j = 0; j < world_size; j++)
+            *(img_indexes + i * world_size + j) = ++count;
+
+    return img_indexes;
+    /*
     int *img_index = (int *)malloc(sizeof(int) * num_elements);
     
     for (int i = 0; i < num_elements; i++) {
@@ -133,6 +151,7 @@ int* AntiSpoofingDetection::create_indexes(int num_elements)
     }
 
     return img_index;
+    */
 }
 
 

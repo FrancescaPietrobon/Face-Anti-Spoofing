@@ -28,7 +28,7 @@ class AntiSpoofingDetection
         string single_prediction(); 
         string multiple_prediction(); //to remove
         string base_multiple_prediction();
-        int *create_indexes(int num_elements);
+        int *create_indexes(int elements_per_proc, int world_size);
         int compute_real(int *sub_indexes, int elements_per_proc);
         int compute_sum_real(int *sum_real, int world_size);
         
