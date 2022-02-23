@@ -33,6 +33,7 @@ find_package(MPI REQUIRED)
 find_package(jsoncpp REQUIRED)
 
 
+
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories(${dlib_INCLUDE_DIRS})
 include_directories("/usr/include/jsoncpp")
@@ -46,7 +47,8 @@ add_executable(FaceAntiSpoofing main.cpp)
 
 target_link_libraries(FaceAntiSpoofing ${OpenCV_LIBS} )
 target_link_libraries(FaceAntiSpoofing ${dlib_LIBS})
-target_link_libraries(FaceAntiSpoofing ${jsoncpp_LIBS})
+target_link_libraries(FaceAntiSpoofing jsoncpp)
+#target_link_libraries(FaceAntiSpoofing ${jsoncpp_LIBS})
 target_link_libraries(FaceAntiSpoofing ${MPI_CXX_LIBRARIES})
 #target_link_libraries(FaceAntiSpoofing jsoncpp::jsoncpp)
 #target_link_libraries(FaceAntiSpoofing PRIVATE jsoncpp_object jsoncpp_static JsonCpp::JsonCpp)

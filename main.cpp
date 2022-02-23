@@ -4,6 +4,7 @@
 #include <string>
 #include <fstream>
 #include <cstdio>
+#include <cassert>
 
 #include <dlib/opencv.h>
 #include <opencv2/highgui/highgui.hpp>
@@ -41,22 +42,23 @@ int main(int argc, char* argv[])
     
     GetPot cl(argc, argv);
 
-    //Json::Value root;
-    //std::ifstream config_doc("data.json", std::ifstream::binary);
-    //config_doc >> root;
+    // https://github.com/open-source-parsers/jsoncpp/wiki
 
-    //cout << root["frames_path"] << endl;
-    
+    std::ifstream config_doc("/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/data.json");
+    assert(config_doc);
 
-    string frames_path = "/home/fra/Project/Frames/";
-    string SNN_weights = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb";
-    string ML_weights = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml";
-    string face_detect = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat";
-    string img_path = "/home/fra/Scaricati/2022-02-08-163449.jpg";
+    Json::Value root;
+    config_doc >> root;
+
+    string frames_path = root["frames_path"].asString();
+    string SNN_weights = root["SNN_weights"].asString();
+    string ML_weights = root["ML_weights"].asString();
+    string face_detect = root["face_detect"].asString();
+    string img_path = root["example_path"].asString();
 
     // Set webcam options
-    int deviceID = 0;       // 0 = open default camera
-    int apiID = CAP_ANY;    // 0 = autodetect default API
+    int deviceID = root["deviceID"].asInt();      // 0 = open default camera
+    int apiID = CAP_ANY;                          // 0 = autodetect default APIs
 
     // Load SNN
     dnn::Net snn = cv::dnn::readNetFromTensorflow(SNN_weights);
