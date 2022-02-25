@@ -39,10 +39,8 @@ int main(int argc, char* argv[])
 
     GetPot cl(argc, argv);
 
-    string json_path = "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/src/data.json";
-    
     // Open json file with parameters
-    std::ifstream config_doc(json_path);
+    std::ifstream config_doc("../src/data.json");
     assert(config_doc);
 
     Json::Value root;
