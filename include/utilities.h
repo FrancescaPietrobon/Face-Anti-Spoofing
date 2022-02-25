@@ -13,6 +13,8 @@
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
 
+#include "../include/antispoofing_detection.h"
+#include "../include/face_detection.h"
 
 using namespace cv;
 using namespace std;
@@ -24,7 +26,6 @@ bool camera_disconnection(bool bSuccess);
 
 bool close_webcam();
 
-//Mat print_image(VideoCapture cap, string message);
-
+int collect_frames(FaceDetection *face_detector, AntiSpoofingDetection *antispoofing_detector, string frames_path, int i);
 
 #endif
