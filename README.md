@@ -1,6 +1,6 @@
 # Face-Anti-Spoofing
 
-To run the code in [main.cpp](https://github.com/FrancescaPietrobon/Face-Anti-Spoofing/blob/main/main.cpp) it is necessary to modify some paths and run the code with:
+To run the code it is necessary only to modify the paths in [data.json](https://github.com/FrancescaPietrobon/Face-Anti-Spoofing/blob/main/data.json) and run the code with:
 
 ```
 ./FaceAntiSpoofing -p <img_path>
