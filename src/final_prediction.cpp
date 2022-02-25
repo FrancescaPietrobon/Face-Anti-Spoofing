@@ -36,7 +36,7 @@ void FinalPrediction::predict_image()
             } 
         }
     }
-    imshow( "Image", face_detector->img);
+    imshow("Image", face_detector->img);
 }
 
 
@@ -60,61 +60,44 @@ int FinalPrediction::predict_realtime()
 } 
 
 
-int FinalPrediction::predict_images(int n_img, string frames_path)
+int FinalPrediction::predict_images(string frames_path)
 {
     string window_name = "Webcam";
-
     int i = 1;
 
     while (true)
     {
         // Until the decided number of frames is not reached collect frames
-        if (i < n_img)
+        if (i <= antispoofing_detector->n_img)
         {
-            // Read a new frame from video
-            bool bSuccess = face_detector->cap.read(face_detector->img);
-            //imshow(window_name, face_detector.img);
-            //waitKey(5000);
-
-            // Breaking the while loop if the frames cannot be captured
-            if (camera_disconnection(bSuccess)) return 1;
-
-            // If the face is detected
-            if (face_detector->detect_rectangle())
+            i = collect_frames(face_detector, antispoofing_detector, frames_path, i);
+            if (i == antispoofing_detector->n_img + 3)
             {
-                // If the face detected is not out of bounds
-                if (!face_detector->out_of_bounds())// && !(face_detector->ROI_dim==0))
-                {
-                    // Extract only the face
-                    antispoofing_detector->face = face_detector->extract_rectangle();
-                                                
-                    // Check if the face is blurred 
-                    if (!face_detector->blur_detection())
-                    {
-                        // Save frame
-                        imwrite(frames_path + "frame" + std::to_string(i) +".jpg", antispoofing_detector->face);
-                        i++;
-                    } 
-                }
-            }
-            imshow(window_name, face_detector->img);
+                print_status(&face_detector->img, "Camera disconnected");
+                imshow(window_name, face_detector->img);
+                waitKey(5000);
+                return 1;
+            }     
         }
         else
         {
-            // If there is no prediction print "Performing prediction..." otherwise print the overall prediction
+            // If there is no prediction compute it
             if (antispoofing_detector->pred == "Null")
-                print_status(&face_detector->img, "Performing prediction...");
+            {
+                // Compute the overall prediction
+                antispoofing_detector->pred = antispoofing_detector->multiple_prediction();
+            }
             else
+            {
+                // Print the prediction
                 print_status(&face_detector->img, antispoofing_detector->pred);
-
-            imshow(window_name, face_detector->img);
-
-            // Compute the overall prediction
-            antispoofing_detector->pred = antispoofing_detector->multiple_prediction(frames_path);
+                imshow(window_name, face_detector->img);
+            }
         }
 
         // Check when close webcam
         if (close_webcam()) return 1;
     }
+    
     return 0;
 }       

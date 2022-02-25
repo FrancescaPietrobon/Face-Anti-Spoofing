@@ -29,17 +29,34 @@ add_library(Utilities src/utilities.cpp)
 
 find_package(OpenCV REQUIRED)
 find_package(dlib REQUIRED)
+find_package(MPI REQUIRED)
+find_package(jsoncpp REQUIRED)
+
+
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories(${dlib_INCLUDE_DIRS})
+include_directories("/usr/include/jsoncpp")
+include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+set(CMAKE_C_COMPILER mpicc)
+set(CMAKE_CXX_COMPILER mpicxx)
 
 add_executable(FaceAntiSpoofing main.cpp)
 
 target_link_libraries(FaceAntiSpoofing ${OpenCV_LIBS} )
 target_link_libraries(FaceAntiSpoofing ${dlib_LIBS})
+target_link_libraries(FaceAntiSpoofing jsoncpp)
+#target_link_libraries(FaceAntiSpoofing ${jsoncpp_LIBS})
+target_link_libraries(FaceAntiSpoofing ${MPI_CXX_LIBRARIES})
+#target_link_libraries(FaceAntiSpoofing jsoncpp::jsoncpp)
+#target_link_libraries(FaceAntiSpoofing PRIVATE jsoncpp_object jsoncpp_static JsonCpp::JsonCpp)
+target_link_libraries(FaceAntiSpoofing Utilities)
 target_link_libraries(FaceAntiSpoofing AntiSpoofingDetection)
 target_link_libraries(FaceAntiSpoofing FaceDetection)
 target_link_libraries(FaceAntiSpoofing Prediction)
 target_link_libraries(FaceAntiSpoofing Utilities)
+#target_link_libraries(FaceAntiSpoofing PRIVATE nlohmann_json::nlohmann_json)
 #target_link_libraries(FaceAntiSpoofing Parameters)
 
