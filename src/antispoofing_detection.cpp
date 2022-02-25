@@ -93,7 +93,7 @@ int AntiSpoofingDetection::compute_real(int *sub_indexes, int elements_per_proc)
         if (AntiSpoofingDetection::value_prediction() == 0)
             real += 1;
     }
-    cout << "Number of real images = " + to_string(real) << endl;
+    
     return real;
 }
 
