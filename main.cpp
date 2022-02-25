@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
     GetPot cl(argc, argv);
 
     // Open json file with parameters
-    std::ifstream config_doc("/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/data.json");
+    std::ifstream config_doc("/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/src/data.json");
     assert(config_doc);
 
     Json::Value root;
