@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
     string SNN_weights = root["SNN_weights"].asString();
     string ML_weights = root["ML_weights"].asString();
     string face_detect = root["face_detect"].asString();
-    string img_path = root["example_path"].asString();
+    string example_path = root["example_path"].asString();
 
     int ROI_dim = root["ROI_dim"].asInt(); 
     int n_img = root["n_img"].asInt();
@@ -86,8 +86,11 @@ int main(int argc, char* argv[])
     // To see the prediction of a single image
     if (cl.search(2, "-p", "--path") && world_rank == 0)
     {
+        // If at runtime a path is given use that image otherwise use the provided image
+        string img_selected = cl.next(example_path.c_str());
+
         // Read the image
-        face_detector.img = imread(img_path, IMREAD_COLOR);
+        face_detector.img = imread(img_selected, IMREAD_COLOR);
             
         // Perform the prediction
         final_prediction.predict_image();
