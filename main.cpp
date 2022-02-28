@@ -3,7 +3,6 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <cstdio>
 #include <cassert>
 
 #include <dlib/opencv.h>
@@ -36,6 +35,7 @@ int main(int argc, char* argv[])
     MPI_Comm_size (MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank (MPI_COMM_WORLD, &world_rank);
 
+    cout << world_rank << endl;
     GetPot cl(argc, argv);
 
     // Open json file with parameters
@@ -111,15 +111,16 @@ int main(int argc, char* argv[])
             {
                 string window_name = "Webcam";
                 namedWindow( window_name, WINDOW_AUTOSIZE );
-                int elements_per_proc = int(n_img / world_size);
                 int tot_real = 0;
                 int i = 1;
 
                 while (true)
                 {
+                    cout << "in while " + to_string(world_rank) << endl;
                     // Until the decided number of frames is not reached collect frames
                     if (world_rank == 0 && i <= n_img)
                     {
+                        cout << "Collecte image " + to_string(i) << endl;
                         i = collect_frames(&face_detector, &antispoofing_detector, frames_path, i);
                         if (i == n_img + 3)
                         {
@@ -127,25 +128,21 @@ int main(int argc, char* argv[])
                             imshow(window_name, face_detector.img);
                             waitKey(5000);
                             return 1;
-                        }     
+                        }  
                     }
                     else
                     { 
-                        // Create the vector of image indexes. Its total size will be the number of elements
-                        // per process times the number of processes
-                        int *img_index = NULL;
-                        if (world_rank == 0)
-                            img_index = antispoofing_detector.create_indexes(elements_per_proc, world_size);
+                        int count_real = 0;
+                        for(int j = world_rank; j < n_img ; j+=world_size)
+                        {
+                            cout << "Predicting image " + to_string(j+1) + "by processor " + to_string(world_rank) << endl;
+                            // Extract the images saved
+                            antispoofing_detector.face = imread(frames_path + "frame" + std::to_string(j+1) +".jpg", IMREAD_COLOR);
 
-                        // Create a buffer that will hold a subset of indexes
-                        int *sub_indexes = new int[elements_per_proc];
-
-                        // Scatter the indexes from the root process to all processes
-                        MPI_Scatter(img_index, elements_per_proc, MPI_INT, sub_indexes,
-                                    elements_per_proc, MPI_INT, 0, MPI_COMM_WORLD);
-
-                        // Compute the number of real images of the subset
-                        int count_real = antispoofing_detector.compute_real(sub_indexes, elements_per_proc);
+                            // Check if the prediction for the image is 0: Real or 1: Fake
+                            if (antispoofing_detector.value_prediction() == 0)
+                                count_real += 1;
+                        }
 
                         // Gather all partial averages down to the root process
                         int *sum_real = NULL;
@@ -171,16 +168,14 @@ int main(int argc, char* argv[])
                         }
 
                         // Clean up
-                        if (world_rank == 0) {
-                            delete(img_index);
+                        if (world_rank == 0)
                             delete(sum_real);
-                        }
-                        delete(sub_indexes);                            
                                         
                         break;
                     }
                     if (close_webcam()) break; 
                 }
+                
             }
         }
     }
@@ -292,8 +287,8 @@ int main(int argc, char* argv[])
     {
         if (world_rank == 0)
         {
-            face_detector.img = imread(img_path, IMREAD_COLOR);
-        
+            face_detector.img = imread(im//#include <cstdio>
+
             // Make the prediction
             final_prediction.predict_image();
 

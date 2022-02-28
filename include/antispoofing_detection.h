@@ -32,9 +32,9 @@ class AntiSpoofingDetection
         int *create_indexes(int elements_per_proc, int world_size);
         int compute_real(int *sub_indexes, int elements_per_proc);
         int compute_sum_real(int *sum_real, int world_size);
-        
-    private:
         int value_prediction();
+        
+    private: 
         int world_rank;
         int world_size;
 };

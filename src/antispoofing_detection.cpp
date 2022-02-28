@@ -94,6 +94,32 @@ string AntiSpoofingDetection::multiple_prediction()
 }
 
 
+int AntiSpoofingDetection::compute_sum_real(int *sum_real, int world_size)
+{
+    /// Computes the sum of the number of real images detected by all the processors.
+    /** 
+     * Arguments:
+     *      sum_real: pointer to the number of real images.
+     *      world_size: int of the number of processors available.
+     * 
+     *  Returns:
+     *      Int of the total number of real images in all the processors.
+    */
+
+    int tot_real = 0;
+
+    // Sum all the real detected by all the processors
+    for (int i=0; i<world_size; i++)
+        tot_real = tot_real + sum_real[i];
+    
+    return tot_real;
+}
+
+
+
+// UNUSED FUNCTIONS
+
+
 int* AntiSpoofingDetection::create_indexes(int elements_per_proc, int world_size)
 {
     /// Creates a matrix with indexes of the saved images. It is used to split
@@ -149,30 +175,6 @@ int AntiSpoofingDetection::compute_real(int *sub_indexes, int elements_per_proc)
     
     return real;
 }
-
-
-int AntiSpoofingDetection::compute_sum_real(int *sum_real, int world_size)
-{
-    /// Computes the sum of the number of real images detected by all the processors.
-    /** 
-     * Arguments:
-     *      sum_real: pointer to the number of real images.
-     *      world_size: int of the number of processors available.
-     * 
-     *  Returns:
-     *      Int of the total number of real images in all the processors.
-    */
-
-    int tot_real = 0;
-
-    // Sum all the real detected by all the processors
-    for (int i=0; i<world_size; i++)
-        tot_real = tot_real + sum_real[i];
-    
-    return tot_real;
-}
-
-
 
 
 /*
