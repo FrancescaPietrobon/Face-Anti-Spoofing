@@ -12,6 +12,17 @@ detector(_detector), cap(_cap), ROI_dim(_ROI_dim){};
 
 bool FaceDetection::detect_rectangle()
 {
+    /// Using blib's functions a rectangle containing the face is detected and the rectangle
+    /// informations are collected in the class FaceDetection attributes.
+    /** 
+     * Arguments:
+     *      None.
+     * 
+     *  Returns:
+     *      Bool with true if the face is correctly collected, false if there is no face or
+     *      if there are multiple faces.
+    */
+
     // http://dlib.net/webcam_face_pose_ex.cpp.html
 
     // Make the image bigger by a factor of two.  This is useful since the face detector looks for faces that are about 80 by 80 pixels or larger. 
@@ -49,6 +60,15 @@ bool FaceDetection::detect_rectangle()
 
 dlib::cv_image<dlib::bgr_pixel> FaceDetection::cv_mat_to_dlib()
 {
+    /// Converts a OpenCV Mat in dlib object.
+    /** 
+     * Arguments:
+     *      None.
+     * 
+     *  Returns:
+     *      Image converted in dlib object.
+    */
+
     // Turn OpenCV's Mat into something dlib can deal with
     auto ipl_img = cvIplImage(img); //_IplImage type
     auto cv_img = cv_image<bgr_pixel>(&ipl_img); //dlib::cv_image<dlib::bgr_pixel> type
@@ -58,15 +78,34 @@ dlib::cv_image<dlib::bgr_pixel> FaceDetection::cv_mat_to_dlib()
 
 cv::Rect FaceDetection::dlib_rectangle_to_cv(dlib::rectangle r)
 {
+    /// Converts a dlib rectangle (dlib::rectangle) in OpenCV object (cv::Rect).
+    /** 
+     * Arguments:
+     *      r: dlib rectangle.
+     * 
+     *  Returns:
+     *      OpenCV rectangle.
+    */
+
     return cv::Rect(cv::Point2i(r.left(), r.top()), cv::Point2i(r.right() + 1, r.bottom() + 1));
 }
 
 
 bool FaceDetection::out_of_bounds()
 {   
+    /// Detects if the face collected is correctly centered and changes the ROI dimension if the screen
+    /// of the device used is too small.
+    /** 
+     * Arguments:
+     *      None.
+     * 
+     *  Returns:
+     *      Bool with true if the face is not centered, false otherwise.
+    */
+
     // If the screen is too small the ROI will be as big as the screen otherwise it is fixed
     if (width_screen<ROI_dim || height_screen<ROI_dim)
-        ROI_dim = min(width_screen, height_screen);
+        ROI_dim = int(min(width_screen, height_screen)/1.5);
 
     // If the face or the ROI are out of bounds, the message of non centering is printed
     if (face_out_of_bounds_right() || face_out_of_bounds_left() || face_out_of_bounds_bottom() || face_out_of_bounds_top() ||
@@ -78,6 +117,7 @@ bool FaceDetection::out_of_bounds()
     return false;
 }
 
+// VEDI SE AGGIUNGERE DESCRIZIONE ANCHE A TUTTE QUESTE FUNZIONI
 
 bool FaceDetection::face_out_of_bounds_top() {return ((rect.y + rect.height) > height_screen);}
 
@@ -99,16 +139,34 @@ bool FaceDetection::ROI_out_of_bounds_left() {return ((x_rect_center - ROI_dim/2
 
 Mat FaceDetection::extract_rectangle()
 {
+    /// Extracts the expanded rectangle containing the face that will be used to make the prediction.
+    /** 
+     * Arguments:
+     *      None.
+     * 
+     *  Returns:
+     *      Mat with the cropped image of the face that will be used to make the prediction.
+    */
+
     // Expand the rectangle extracting the ROI
     rectExp = FaceDetection::extract_ROI();
-    FaceDetection::cropedImage = img(rectExp);
+    FaceDetection::croppedImage = img(rectExp);
 
-    return cropedImage;
+    return croppedImage;
 }
 
 
 cv::Rect FaceDetection::extract_ROI()
-{    
+{   
+    /// Extracts the rectangle containing the region of interest containing the face
+    /** 
+     * Arguments:
+     *      None.
+     * 
+     *  Returns:
+     *      cv::Rect containing the face.
+    */
+
     int x = x_rect_center - ROI_dim/2;
     int y = y_rect_center - ROI_dim/2;
 
@@ -118,30 +176,45 @@ cv::Rect FaceDetection::extract_ROI()
 
 void FaceDetection::print_rectangle_cv(string pred)
 {
+    /// Prints the image with a blue rectangle that corresponds to the dlib detected face
+    /// and at it's bottom corner it's dimension are printed.
+    /// Then a green rectangle is printed, it corresponds to the image used to make the prediction,
+    /// and, at top of this, is printed "Real" if the image is predicted as real, "Fake" if it is
+    /// predicted as fake and "Blurred" if the image is blurred so cannot be predicted.
+    /** 
+     * Arguments:
+     *      pred: the prediction for the image.
+     * 
+     *  Returns:
+     *      None.
+    */
+    
     //https://learnopencv.com/face-detection-opencv-dlib-and-deep-learning-c-python/
 
     int thickness_rectangle = 1;
     int lineType = LINE_8;
 
     // Plot face detected by dlib
-	cv::rectangle(img, Point(rect.x, rect.y), Point(rect.x + rect.width, rect.y + rect.height), Scalar(0, 255, 0), thickness_rectangle, lineType);
+	cv::rectangle(img, Point(rect.x, rect.y), Point(rect.x + rect.width, rect.y + rect.height), Scalar(255, 0, 0), thickness_rectangle, lineType);
 
     // Plot face detected expanded that will be used for the antispoofing prediction
-    cv::rectangle(img, Point(rectExp.x, rectExp.y), Point(rectExp.x + rectExp.width, rectExp.y + rectExp.height), Scalar(255,0,0), thickness_rectangle, lineType);
+    cv::rectangle(img, Point(rectExp.x, rectExp.y), Point(rectExp.x + rectExp.width, rectExp.y + rectExp.height), Scalar(0, 255, 0), thickness_rectangle, lineType);
 
     int fontFace = FONT_HERSHEY_SIMPLEX;
-    double fontScale = 0.5;
+    double fontScale = 0.7;
     int thickness_pred = 1;
 
     // Plot result of the prediction if exists otherwise plot blurred if the image is blurred
     if (pred != "Null")
-        putText(img, pred,  Point(rect.x + rect.height/2 + 2, rect.y - 4), fontFace, fontScale, Scalar(0, 255, 0), thickness_pred);
+        //putText(img, pred,  Point(rect.x + rect.height/2 + 2, rect.y - 4), fontFace, fontScale, Scalar(0, 255, 0), thickness_pred);
+        putText(img, pred,  Point(rectExp.x + rectExp.height/2 + 2, rectExp.y - 4), fontFace, fontScale, Scalar(0, 255, 0), thickness_pred);
     else if (blurred)
-        putText(img, "Blurred",  Point(rect.x + rect.height/2 + 2, rect.y - 4), fontFace, fontScale, Scalar(0, 255, 0), thickness_pred);
+        //putText(img, "Blurred",  Point(rect.x + rect.height/2 + 2, rect.y - 4), fontFace, fontScale, Scalar(0, 255, 0), thickness_pred);
+        putText(img, "Blurred",  Point(rectExp.x + rectExp.height/2 + 2, rectExp.y - 4), fontFace, fontScale, Scalar(0, 255, 0), thickness_pred);
 
     // Plot dimension of the rectangle
     string dim = to_string(rect.width) + string("x") + to_string(rect.height);
-    putText(img, dim,  Point(rect.x + rect.width, rect.y), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 255, 0));
+    putText(img, dim,  Point(rect.x + rect.width, rect.y + rect.height), FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 0, 0));
 
     imshow( "Image", img );    
 }
@@ -149,13 +222,22 @@ void FaceDetection::print_rectangle_cv(string pred)
 
 bool FaceDetection::blur_detection()
 {
+    /// Using the laplacian, detects if the image is blurred or not
+    /** 
+     * Arguments:
+     *      None.
+     * 
+     *  Returns:
+     *      Bool that is true if the image is blurred, false otherwise.
+    */
+
     // https://stackoverflow.com/questions/24080123/opencv-with-laplacian-formula-to-detect-image-is-blur-or-not-in-ios
     // https://www.pyimagesearch.com/2015/09/07/blur-detection-with-opencv/
 
     Mat laplacianImage = FaceDetection::compute_laplacian();
 
     Mat gray;
-    cvtColor(cropedImage, gray, COLOR_BGR2GRAY);
+    cvtColor(croppedImage, gray, COLOR_BGR2GRAY);
 
     Laplacian(gray, laplacianImage, CV_64F);
     Scalar mean, stddev;
@@ -175,6 +257,15 @@ bool FaceDetection::blur_detection()
 
 Mat FaceDetection::compute_laplacian()
 {
+    /// Computes the laplacian of the image
+    /** 
+     * Arguments:
+     *      None.
+     * 
+     *  Returns:
+     *      Mat with the laplacian of the image to predict.
+    */
+
     //https://docs.opencv.org/3.4/d5/db5/tutorial_laplace_operator.html
             
     Mat src, src_gray, dst, abs_dst;
@@ -184,10 +275,10 @@ Mat FaceDetection::compute_laplacian()
     int ddepth = CV_16S;
 
     // Reduce noise by blurring with a Gaussian filter ( kernel size = 3 )
-    GaussianBlur(cropedImage, cropedImage, Size(3, 3), 0, 0, BORDER_DEFAULT);
+    GaussianBlur(croppedImage, croppedImage, Size(3, 3), 0, 0, BORDER_DEFAULT);
 
     // Convert the image to grayscale
-    cvtColor(cropedImage, src_gray, COLOR_BGR2GRAY);
+    cvtColor(croppedImage, src_gray, COLOR_BGR2GRAY);
 
     Laplacian(src_gray, dst, ddepth, kernel_size, scale, delta, BORDER_DEFAULT);
 

@@ -22,6 +22,8 @@ class AntiSpoofingDetection
     public:
         AntiSpoofingDetection(dnn::Net snn, Ptr<ml::RTrees> ml, int n_img, string frames_path, int world_rank, int world_size);
         Mat face;
+        dnn::Net snn;
+        Ptr<ml::RTrees> ml;
         int n_img;
         string frames_path;
         string pred = "Null";
@@ -33,8 +35,6 @@ class AntiSpoofingDetection
         
     private:
         int value_prediction();
-        dnn::Net snn;
-        Ptr<ml::RTrees> ml;
         int world_rank;
         int world_size;
 };

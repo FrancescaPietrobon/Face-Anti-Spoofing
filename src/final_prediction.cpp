@@ -14,6 +14,15 @@ face_detector(_face_detector), antispoofing_detector(_antispoofing_detector) {};
 
 void FinalPrediction::predict_image()
 {
+    /// Makes the final prediction (real or fake) for a single image
+    /** 
+     * Arguments:
+     *      None.
+     * 
+     *  Returns:
+     *      None.
+    */
+
     // If the face is detected
     if (face_detector->detect_rectangle())
     {
@@ -42,6 +51,15 @@ void FinalPrediction::predict_image()
 
 int FinalPrediction::predict_realtime()
 {
+    /// Makes the final prediction (real or fake) realtime for each frame collected by the camera
+    /** 
+     * Arguments:
+     *      None.
+     * 
+     *  Returns:
+     *      None.
+    */
+
     while (true)
     {
         // Read a new frame from video 
@@ -62,6 +80,15 @@ int FinalPrediction::predict_realtime()
 
 int FinalPrediction::predict_images(string frames_path)
 {
+    /// Makes the final prediction (real or fake) for multiple images
+    /** 
+     * Arguments:
+     *      frames_path: path where the frames will be collected before computing the prediction
+     * 
+     *  Returns:
+     *      Int that will be 0 if all works fine and 1 if camera disconnects or is closed.
+    */
+
     string window_name = "Webcam";
     int i = 1;
 

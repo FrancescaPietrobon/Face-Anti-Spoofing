@@ -7,6 +7,17 @@ using namespace dlib;
 
 void print_status(Mat *img, string message, bool black)
 {
+    /// Prints the image pointed with a given message
+    /** 
+     * Arguments:
+     *      img: the pointer to the image in which the message would be printed.
+     *      message: the string containing the message to print.
+     *      black: bool to choose if a black background it's nedded.
+     * 
+     *  Returns:
+     *      None.
+    */
+
     // https://docs.opencv.org/4.x/d6/d6e/group__imgproc__draw.html#ga3d2abfcb995fd2db908c8288199dba82
 
     int fontFace = FONT_HERSHEY_SIMPLEX;
@@ -34,6 +45,15 @@ void print_status(Mat *img, string message, bool black)
 
 bool camera_disconnection(bool bSuccess)
 {
+    /// Checks if the camera is disconnected
+    /** 
+     * Arguments:
+     *      bSuccess: bool telling if a frame it's read.
+     * 
+     *  Returns:
+     *      None.
+    */
+
     // Breaking the while loop if the frames cannot be captured
     if (bSuccess == false) 
     {
@@ -47,6 +67,15 @@ bool camera_disconnection(bool bSuccess)
 
 bool close_webcam()
 {
+    /// Checks if Esc is pressed so the camera will be closed
+    /** 
+     * Arguments:
+     *      None.
+     * 
+     *  Returns:
+     *      None.
+    */
+
     if (waitKey(1) == 27)
     {
         cout << "Esc key is pressed by user. Stoppig the video" << endl;
@@ -58,6 +87,20 @@ bool close_webcam()
 
 int collect_frames(FaceDetection *face_detector, AntiSpoofingDetection *antispoofing_detector, string frames_path, int i)
 {
+    /// Checks if the desired amoungh of frames is collected, if not a frame is collected and saved in the given folder
+    /** 
+     * Arguments:
+     *      face_detector: pointer to a class object FaceDetection that collect all the data and functions required to
+     *                     detect the face.
+     *      antispoofing_detector: pointer to a class object AntiSpoofingDetection that collect all the data and functions required to
+     *                     solve the Anti-Spoofing task.
+     *      frame_path: string with the path of the folder where the frames must be saved
+     *      i: int index that define how many frames are just be collected.
+     * 
+     *  Returns:
+     *      Int with the current value of frames collected.
+    */
+
     namedWindow( "Webcam", WINDOW_AUTOSIZE );
     // Until the decided number of frames is not reached collect frames
     if (i <= antispoofing_detector->n_img)

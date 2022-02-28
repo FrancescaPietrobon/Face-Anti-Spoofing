@@ -23,7 +23,9 @@ class FaceDetection
     public:
         FaceDetection(frontal_face_detector detector, VideoCapture cap, int ROI_dim);
         Mat img;
+        frontal_face_detector detector;
         VideoCapture cap;
+        int ROI_dim;
         bool detect_rectangle();
         bool out_of_bounds();
         Mat extract_rectangle();
@@ -32,9 +34,7 @@ class FaceDetection
         
     private:
         cv::Rect rectExp;
-        Mat cropedImage;
-        frontal_face_detector detector;
-        int ROI_dim;
+        Mat croppedImage;
         cv::Rect rect;
         bool detected_ROI = true;
         bool blurred = false;

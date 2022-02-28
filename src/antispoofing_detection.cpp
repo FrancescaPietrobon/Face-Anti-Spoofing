@@ -13,6 +13,16 @@ snn(_snn), ml(_ml), n_img(_n_img), frames_path(_frames_path), world_rank(_world_
 
 string AntiSpoofingDetection::single_prediction()
 {
+    /// After detecting if the prediction of the image is 0 (Real) or 1 (Fake),
+    /// converts it in a string prediction.
+    /** 
+     * Arguments:
+     *      None.
+     * 
+     *  Returns:
+     *      String with the final prediction: "Real" or "Fake".
+    */
+
     int prediction = AntiSpoofingDetection::value_prediction();
 
     string output;
@@ -28,6 +38,16 @@ string AntiSpoofingDetection::single_prediction()
 
 int AntiSpoofingDetection::value_prediction()
 {
+    /// Uses the Siamese Neural Network saved to compute the features,
+    /// then makes the prediction with the Machine Learning model saved.
+    /** 
+     * Arguments:
+     *      None.
+     * 
+     *  Returns:
+     *      Int with 0 if the image is predicted as real and 1 if it is predicted as fake.
+    */
+
     // SNN prediction
     Mat blob = dnn::blobFromImage(face, 1, Size(256, 256), Scalar(0,0,0), true, false, CV_32F);
     snn.setInput(blob);
@@ -42,6 +62,16 @@ int AntiSpoofingDetection::value_prediction()
 
 string AntiSpoofingDetection::multiple_prediction()
 {
+    /// Extracts all the saved images, makes the prediction for each one and takes as final prediction
+    /// the one with majority of the occurrences.
+    /** 
+     * Arguments:
+     *      None.
+     * 
+     *  Returns:
+     *      String with the prediction so "Real" or "Fake".
+    */
+
     int real = 0;
     string frame;
 
@@ -66,6 +96,18 @@ string AntiSpoofingDetection::multiple_prediction()
 
 int* AntiSpoofingDetection::create_indexes(int elements_per_proc, int world_size)
 {
+    /// Creates a matrix with indexes of the saved images. It is used to split
+    /// the images between the processors. 
+    /** 
+     * Arguments:
+     *      elements_per_proc: int of the number of elements that every processor
+     *                         have to analyze.
+     *      world_size: int of the number of processors available.
+     * 
+     *  Returns:
+     *      Pointer to the matrix of indexes splitted.
+    */
+
     int* img_indexes = new int[elements_per_proc * world_size];
     int count = 0;
 
@@ -80,6 +122,17 @@ int* AntiSpoofingDetection::create_indexes(int elements_per_proc, int world_size
 
 int AntiSpoofingDetection::compute_real(int *sub_indexes, int elements_per_proc)
 {
+    /// Extracts all the saved images for the given partial indexes, makes the prediction for each one
+    /// and collects the number of occurences for real images.
+    /** 
+     * Arguments:
+     *      sub_indexes: pointer of the partial indexes of the images used by one processor.
+     *      elements_per_proc: int of the number of element used by one processor.
+     * 
+     *  Returns:
+     *      Int of the number of real images in the inspected processor.
+    */
+
     int real = 0;
     string frame;
 
@@ -100,6 +153,16 @@ int AntiSpoofingDetection::compute_real(int *sub_indexes, int elements_per_proc)
 
 int AntiSpoofingDetection::compute_sum_real(int *sum_real, int world_size)
 {
+    /// Computes the sum of the number of real images detected by all the processors.
+    /** 
+     * Arguments:
+     *      sum_real: pointer to the number of real images.
+     *      world_size: int of the number of processors available.
+     * 
+     *  Returns:
+     *      Int of the total number of real images in all the processors.
+    */
+
     int tot_real = 0;
 
     // Sum all the real detected by all the processors
