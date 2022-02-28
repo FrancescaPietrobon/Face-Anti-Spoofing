@@ -19,7 +19,6 @@
 
 #include "GetPot"
 
-//#include "include/parameters.h"
 #include "include/antispoofing_detection.h"
 #include "include/face_detection.h"
 #include "include/final_prediction.h"
