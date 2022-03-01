@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.9)
 
 project(FaceAntiSpoofing VERSION 1.0)
 
@@ -31,12 +31,15 @@ find_package(OpenCV REQUIRED)
 find_package(dlib REQUIRED)
 find_package(MPI REQUIRED)
 find_package(jsoncpp REQUIRED)
-
+#find_package(Boost REQUIRED)
+find_package( Boost REQUIRED COMPONENTS filesystem)
 
 
 include_directories( ${OpenCV_INCLUDE_DIRS} )
 include_directories(${dlib_INCLUDE_DIRS})
 include_directories("/usr/include/jsoncpp")
+include_directories(${Boost_INCLUDE_DIRS})
+#include_directories("/usr/include/boost/filesystem")
 include_directories(SYSTEM ${MPI_INCLUDE_PATH})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
@@ -48,7 +51,9 @@ add_executable(FaceAntiSpoofing main.cpp)
 target_link_libraries(FaceAntiSpoofing ${OpenCV_LIBS} )
 target_link_libraries(FaceAntiSpoofing ${dlib_LIBS})
 target_link_libraries(FaceAntiSpoofing jsoncpp)
-#target_link_libraries(FaceAntiSpoofing ${jsoncpp_LIBS})
+target_link_libraries(FaceAntiSpoofing ${Boost_FILESYSTEM_LIBRARY})
+#target_link_libraries(FaceAntiSpoofing Boost::boost Boost::filesystem)
+#target_link_libraries(FaceAntiSpoofing filesystem)
 target_link_libraries(FaceAntiSpoofing ${MPI_CXX_LIBRARIES})
 #target_link_libraries(FaceAntiSpoofing jsoncpp::jsoncpp)
 #target_link_libraries(FaceAntiSpoofing PRIVATE jsoncpp_object jsoncpp_static JsonCpp::JsonCpp)

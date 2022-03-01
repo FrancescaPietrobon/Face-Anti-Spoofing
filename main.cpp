@@ -5,6 +5,8 @@
 #include <fstream>
 #include <cassert>
 
+#include <boost/filesystem.hpp>
+
 #include <dlib/opencv.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <dlib/image_processing/frontal_face_detector.h>
@@ -26,6 +28,7 @@
 using namespace std;
 using namespace cv;
 using namespace dlib;
+using namespace boost::filesystem;
 
 
 int main(int argc, char* argv[])
@@ -35,14 +38,19 @@ int main(int argc, char* argv[])
     MPI_Comm_size (MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank (MPI_COMM_WORLD, &world_rank);
 
-    cout << world_rank << endl;
+    cout << "world_rank" + to_string(world_rank) << endl;
     GetPot cl(argc, argv);
-
+    
+    std::fstream config_doc;
+    std::fstream config_doc2;
+    
     // Open json file with parameters
-    std::ifstream config_doc("../src/data.json");
-    assert(config_doc);
+    //config_doc.open ("../src/data.json", std::ios::in);
+    config_doc.open ("../src/data.json", std::ios::in | std::ios::out);
 
     Json::Value root;
+    Json::Value root2;
+
     config_doc >> root;
 
     // Load parameters
@@ -54,6 +62,9 @@ int main(int argc, char* argv[])
 
     int ROI_dim = root["ROI_dim"].asInt(); 
     int n_img = root["n_img"].asInt();
+    bool emptied_folder = root["emptied_folder"].asBool();
+    
+    //config_doc.close();
 
     // Set webcam options
     int deviceID = root["deviceID"].asInt();      // 0 = open default camera
@@ -81,7 +92,7 @@ int main(int argc, char* argv[])
     FaceDetection face_detector(detector, cap, ROI_dim);
     AntiSpoofingDetection antispoofing_detector(snn, ml, n_img, frames_path, world_rank, world_size);
     FinalPrediction final_prediction(&face_detector, &antispoofing_detector);
-        
+           
     // To see the prediction of a single image
     if (cl.search(2, "-p", "--path") && world_rank == 0)
     {
@@ -106,75 +117,128 @@ int main(int argc, char* argv[])
         {
             // If only one processor
             if (world_size == 1)
+            {
+                auto start_NoPar = chrono::high_resolution_clock::now();
                 final_prediction.predict_images(frames_path);
+                auto stop_NoPar = chrono::high_resolution_clock::now();
+                auto duration_NoPar = chrono::duration_cast<chrono::milliseconds>(stop_NoPar - start_NoPar);
+                cout << "Time taken in non parallel: "
+                    << duration_NoPar.count() << " milliseconds" << endl;
+            }
             else
             {
+                auto start_Par = chrono::high_resolution_clock::now();
+                
                 string window_name = "Webcam";
-                namedWindow( window_name, WINDOW_AUTOSIZE );
                 int tot_real = 0;
                 int i = 1;
+                int num_folder_images =  count_if(directory_iterator(frames_path), directory_iterator(), [](const directory_entry& e)
+                                        {return e.path().extension() == ".jpg";});
 
+                if (num_folder_images == n_img && world_rank == 0 && emptied_folder == false)
+                {
+                    for (directory_iterator end_dir_it, it(frames_path); it!=end_dir_it; ++it)
+                    {
+                        remove_all(it->path());
+                        cout << "Removed image " << endl;
+                    }
+                    
+                    /*
+                    root["emptied_folder"] = true;
+
+                    Json::StyledWriter writer;
+                    std::ofstream myfile;
+                    myfile.open ("../src/data.json");
+                    myfile << writer.write(root);
+
+                    cout << "Empty folder" << endl;
+
+                    myfile.close();
+                    */
+                }
                 while (true)
                 {
-                    cout << "in while " + to_string(world_rank) << endl;
                     // Until the decided number of frames is not reached collect frames
                     if (world_rank == 0 && i <= n_img)
                     {
                         cout << "Collecte image " + to_string(i) << endl;
                         i = collect_frames(&face_detector, &antispoofing_detector, frames_path, i);
-                        if (i == n_img + 3)
+                        if (i == n_img)
+                        {
+                            Json::StyledWriter writer;
+                            std::ofstream myfile;
+                            root["collected_images"] = true;
+                            myfile.open ("../src/data.json");
+                            myfile << writer.write(root);
+
+                            cout << "Collected all images" << endl;
+                        }
+                        else if (i == n_img + 3)
                         {
                             print_status(&face_detector.img, "Camera disconnected");
                             imshow(window_name, face_detector.img);
                             waitKey(5000);
                             return 1;
-                        }  
+                        }
                     }
                     else
-                    { 
-                        int count_real = 0;
-                        for(int j = world_rank; j < n_img ; j+=world_size)
-                        {
-                            cout << "Predicting image " + to_string(j+1) + "by processor " + to_string(world_rank) << endl;
-                            // Extract the images saved
-                            antispoofing_detector.face = imread(frames_path + "frame" + std::to_string(j+1) +".jpg", IMREAD_COLOR);
+                    {
+                        // Read json file
+                        config_doc2.open("../src/data.json", std::ios::in);
+                        config_doc2 >> root2;
+                        bool collected_images = root2["collected_images"].asBool();
+                        config_doc2.close();
 
-                            // Check if the prediction for the image is 0: Real or 1: Fake
-                            if (antispoofing_detector.value_prediction() == 0)
-                                count_real += 1;
+                        if (collected_images == true)
+                        { 
+                            int count_real = 0;
+                            for(int j = world_rank; j < n_img ; j+=world_size)
+                            {
+                                cout << "Predicting image " + to_string(j+1) + "by processor " + to_string(world_rank) << endl;
+                                // Extract the images saved
+                                antispoofing_detector.face = imread(frames_path + "frame" + std::to_string(j+1) +".jpg", IMREAD_COLOR);
+
+                                // Check if the prediction for the image is 0: Real or 1: Fake
+                                if (antispoofing_detector.value_prediction() == 0)
+                                    count_real += 1;
+                            }
+
+                            // Gather all partial averages down to the root process
+                            int *sum_real = NULL;
+                            if (world_rank == 0)
+                                sum_real = new int[world_size];
+                                
+                            MPI_Gather(&count_real, 1, MPI_INT, sum_real, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+                            // Compute the total average of all numbers.
+                            if (world_rank == 0)
+                            {
+                                tot_real = antispoofing_detector.compute_sum_real(sum_real, world_size);
+
+                                // Take the one with higher number of occurences
+                                if (tot_real > n_img/2)
+                                    antispoofing_detector.pred = "Real";     
+                                else
+                                    antispoofing_detector.pred = "Fake";
+
+                                print_status(&face_detector.img, antispoofing_detector.pred);
+                                imshow(window_name, face_detector.img);
+                                waitKey(5000);
+                            }
+
+                            // Clean up
+                            if (world_rank == 0)
+                                delete(sum_real);
+                                            
+                            break;
                         }
-
-                        // Gather all partial averages down to the root process
-                        int *sum_real = NULL;
-                        if (world_rank == 0)
-                            sum_real = new int[world_size];
-                            
-                        MPI_Gather(&count_real, 1, MPI_INT, sum_real, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-                        // Compute the total average of all numbers.
-                        if (world_rank == 0)
-                        {
-                            tot_real = antispoofing_detector.compute_sum_real(sum_real, world_size);
-
-                            // Take the one with higher number of occurences
-                            if (tot_real > n_img/2)
-                                antispoofing_detector.pred = "Real";     
-                            else
-                                antispoofing_detector.pred = "Fake";
-
-                            print_status(&face_detector.img, antispoofing_detector.pred);
-                            imshow(window_name, face_detector.img);
-                            waitKey(5000);
-                        }
-
-                        // Clean up
-                        if (world_rank == 0)
-                            delete(sum_real);
-                                        
-                        break;
                     }
                     if (close_webcam()) break; 
                 }
+                auto stop_Par = chrono::high_resolution_clock::now();
+                auto duration_Par = chrono::duration_cast<chrono::milliseconds>(stop_Par - start_Par);
+                cout << "Time taken in parallel: "
+                    << duration_Par.count() << " milliseconds" << endl;
                 
             }
         }
