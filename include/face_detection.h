@@ -48,10 +48,10 @@ class FaceDetection
         bool ROI_out_of_bounds_bottom();
         bool ROI_out_of_bounds_right();
         bool ROI_out_of_bounds_left();
-        bool face_out_of_bounds_top();
-        bool face_out_of_bounds_bottom();
-        bool face_out_of_bounds_right();
-        bool face_out_of_bounds_left();
+        //bool face_out_of_bounds_top();
+        //bool face_out_of_bounds_bottom();
+        //bool face_out_of_bounds_right();
+        //bool face_out_of_bounds_left();
         cv::Rect extract_ROI();
         cv::Rect dlib_rectangle_to_cv(dlib::rectangle r);
         dlib::cv_image<dlib::bgr_pixel> cv_mat_to_dlib();

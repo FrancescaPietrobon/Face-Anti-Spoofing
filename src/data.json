@@ -2,7 +2,7 @@
    "ML_weights" : "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/All_RF_opencv_final_net_lr5e-4.xml",
    "ROI_dim" : 350,
    "SNN_weights" : "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/Frozen_graph_All_final_net_5e-4.pb",
-   "collected_images" : true,
+   "collected_images" : false,
    "deviceID" : 0,
    "emptied_folder" : false,
    "example_path" : "/home/fra/Scaricati/2022-02-08-163449.jpg",

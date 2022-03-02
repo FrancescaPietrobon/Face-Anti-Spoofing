@@ -3,7 +3,6 @@
 #include <iostream>
 #include <string>
 #include <fstream>
-#include <cassert>
 
 #include <boost/filesystem.hpp>
 
@@ -62,7 +61,10 @@ int main(int argc, char* argv[])
 
     int ROI_dim = root["ROI_dim"].asInt(); 
     int n_img = root["n_img"].asInt();
-    bool emptied_folder = root["emptied_folder"].asBool();
+    
+    int collected_images;
+    //int collected_images;
+    //bool emptied_folder = root["emptied_folder"].asBool();
     
     //config_doc.close();
 
@@ -90,7 +92,7 @@ int main(int argc, char* argv[])
 
     // Construct classes
     FaceDetection face_detector(detector, cap, ROI_dim);
-    AntiSpoofingDetection antispoofing_detector(snn, ml, n_img, frames_path, world_rank, world_size);
+    AntiSpoofingDetection antispoofing_detector(snn, ml, n_img, frames_path, world_rank);
     FinalPrediction final_prediction(&face_detector, &antispoofing_detector);
            
     // To see the prediction of a single image
@@ -132,32 +134,10 @@ int main(int argc, char* argv[])
                 string window_name = "Webcam";
                 int tot_real = 0;
                 int i = 1;
-                int num_folder_images =  count_if(directory_iterator(frames_path), directory_iterator(), [](const directory_entry& e)
-                                        {return e.path().extension() == ".jpg";});
 
-                if (num_folder_images == n_img && world_rank == 0 && emptied_folder == false)
-                {
-                    for (directory_iterator end_dir_it, it(frames_path); it!=end_dir_it; ++it)
-                    {
-                        remove_all(it->path());
-                        cout << "Removed image " << endl;
-                    }
-                    
-                    /*
-                    root["emptied_folder"] = true;
-
-                    Json::StyledWriter writer;
-                    std::ofstream myfile;
-                    myfile.open ("../src/data.json");
-                    myfile << writer.write(root);
-
-                    cout << "Empty folder" << endl;
-
-                    myfile.close();
-                    */
-                }
                 while (true)
                 {
+                    //MPI_Barrier(MPI_COMM_WORLD);
                     // Until the decided number of frames is not reached collect frames
                     if (world_rank == 0 && i <= n_img)
                     {
@@ -165,13 +145,7 @@ int main(int argc, char* argv[])
                         i = collect_frames(&face_detector, &antispoofing_detector, frames_path, i);
                         if (i == n_img)
                         {
-                            Json::StyledWriter writer;
-                            std::ofstream myfile;
-                            root["collected_images"] = true;
-                            myfile.open ("../src/data.json");
-                            myfile << writer.write(root);
-
-                            cout << "Collected all images" << endl;
+                            collected_images = 0;
                         }
                         else if (i == n_img + 3)
                         {
@@ -183,13 +157,11 @@ int main(int argc, char* argv[])
                     }
                     else
                     {
-                        // Read json file
-                        config_doc2.open("../src/data.json", std::ios::in);
-                        config_doc2 >> root2;
-                        bool collected_images = root2["collected_images"].asBool();
-                        config_doc2.close();
+                        MPI_Bcast(&collected_images, 1, MPI_INT, 0, MPI_COMM_WORLD);
+                        MPI_Barrier(MPI_COMM_WORLD);
 
-                        if (collected_images == true)
+                        cout << "collected_images for rank " + to_string(world_rank) + " = " + to_string(collected_images) << endl;
+                        if (collected_images == 0)
                         { 
                             int count_real = 0;
                             for(int j = world_rank; j < n_img ; j+=world_size)

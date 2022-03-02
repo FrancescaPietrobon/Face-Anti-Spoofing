@@ -108,8 +108,9 @@ bool FaceDetection::out_of_bounds()
         ROI_dim = int(min(width_screen, height_screen)/1.5);
 
     // If the face or the ROI are out of bounds, the message of non centering is printed
-    if (face_out_of_bounds_right() || face_out_of_bounds_left() || face_out_of_bounds_bottom() || face_out_of_bounds_top() ||
-        ROI_out_of_bounds_right() || ROI_out_of_bounds_left() || ROI_out_of_bounds_bottom() || ROI_out_of_bounds_top())
+    //if (face_out_of_bounds_right() || face_out_of_bounds_left() || face_out_of_bounds_bottom() || face_out_of_bounds_top() ||
+    //    ROI_out_of_bounds_right() || ROI_out_of_bounds_left() || ROI_out_of_bounds_bottom() || ROI_out_of_bounds_top())
+    if (ROI_out_of_bounds_right() || ROI_out_of_bounds_left() || ROI_out_of_bounds_bottom() || ROI_out_of_bounds_top())
     {
         print_status(&img, "The face is not centered in the screen", false);
         return true;
@@ -118,7 +119,7 @@ bool FaceDetection::out_of_bounds()
 }
 
 // VEDI SE AGGIUNGERE DESCRIZIONE ANCHE A TUTTE QUESTE FUNZIONI
-
+/*
 bool FaceDetection::face_out_of_bounds_top() {return ((rect.y + rect.height) > height_screen);}
 
 bool FaceDetection::face_out_of_bounds_bottom() {return (rect.y < 0);}
@@ -126,6 +127,7 @@ bool FaceDetection::face_out_of_bounds_bottom() {return (rect.y < 0);}
 bool FaceDetection::face_out_of_bounds_right() {return ((rect.x + rect.width) > width_screen);}
 
 bool FaceDetection::face_out_of_bounds_left() {return (rect.x < 0);}
+*/
 
 
 bool FaceDetection::ROI_out_of_bounds_top() {return ((y_rect_center + ROI_dim/2) > height_screen);}

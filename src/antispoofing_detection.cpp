@@ -7,8 +7,8 @@ using namespace std;
 using namespace dlib;
 
 
-AntiSpoofingDetection::AntiSpoofingDetection(dnn::Net _snn, Ptr<ml::RTrees> _ml, int _n_img, string _frames_path, int _world_rank, int _world_size):
-snn(_snn), ml(_ml), n_img(_n_img), frames_path(_frames_path), world_rank(_world_rank), world_size(_world_size) {};
+AntiSpoofingDetection::AntiSpoofingDetection(dnn::Net _snn, Ptr<ml::RTrees> _ml, int _n_img, string _frames_path, int _world_rank):
+snn(_snn), ml(_ml), n_img(_n_img), frames_path(_frames_path), world_rank(_world_rank) {};
 
 
 string AntiSpoofingDetection::single_prediction()
@@ -119,12 +119,12 @@ int AntiSpoofingDetection::compute_sum_real(int *sum_real, int world_size)
 
 // UNUSED FUNCTIONS
 
-
+/*
 int* AntiSpoofingDetection::create_indexes(int elements_per_proc, int world_size)
 {
     /// Creates a matrix with indexes of the saved images. It is used to split
     /// the images between the processors. 
-    /** 
+    * 
      * Arguments:
      *      elements_per_proc: int of the number of elements that every processor
      *                         have to analyze.
@@ -132,7 +132,7 @@ int* AntiSpoofingDetection::create_indexes(int elements_per_proc, int world_size
      * 
      *  Returns:
      *      Pointer to the matrix of indexes splitted.
-    */
+    
 
     int* img_indexes = new int[elements_per_proc * world_size];
     int count = 0;
@@ -150,14 +150,14 @@ int AntiSpoofingDetection::compute_real(int *sub_indexes, int elements_per_proc)
 {
     /// Extracts all the saved images for the given partial indexes, makes the prediction for each one
     /// and collects the number of occurences for real images.
-    /** 
+    * 
      * Arguments:
      *      sub_indexes: pointer of the partial indexes of the images used by one processor.
      *      elements_per_proc: int of the number of element used by one processor.
      * 
      *  Returns:
      *      Int of the number of real images in the inspected processor.
-    */
+    
 
     int real = 0;
     string frame;
@@ -175,7 +175,7 @@ int AntiSpoofingDetection::compute_real(int *sub_indexes, int elements_per_proc)
     
     return real;
 }
-
+*/
 
 /*
 string AntiSpoofingDetection::MPI_multiple_prediction()
