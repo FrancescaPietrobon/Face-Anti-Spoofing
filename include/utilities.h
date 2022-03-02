@@ -26,6 +26,6 @@ bool camera_disconnection(bool bSuccess);
 
 bool close_webcam();
 
-int collect_frames(FaceDetection *face_detector, AntiSpoofingDetection *antispoofing_detector, string frames_path, int i);
+int collect_frames(FaceDetection *face_detector, AntiSpoofingDetection *antispoofing_detector, string frames_path);
 
 #endif
