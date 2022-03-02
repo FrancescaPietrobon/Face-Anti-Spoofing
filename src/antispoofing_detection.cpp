@@ -7,8 +7,8 @@ using namespace std;
 using namespace dlib;
 
 
-AntiSpoofingDetection::AntiSpoofingDetection(dnn::Net _snn, Ptr<ml::RTrees> _ml, int _n_img, string _frames_path, int _world_rank):
-snn(_snn), ml(_ml), n_img(_n_img), frames_path(_frames_path), world_rank(_world_rank) {};
+AntiSpoofingDetection::AntiSpoofingDetection(dnn::Net _snn, Ptr<ml::RTrees> _ml, int _n_img, string _frames_path):
+snn(_snn), ml(_ml), n_img(_n_img), frames_path(_frames_path) {};
 
 
 string AntiSpoofingDetection::single_prediction()
@@ -51,7 +51,15 @@ int AntiSpoofingDetection::value_prediction()
     // SNN prediction
     Mat blob = dnn::blobFromImage(face, 1, Size(256, 256), Scalar(0,0,0), true, false, CV_32F);
     snn.setInput(blob);
+
+    // Uncomment to see the time needed to load the SNN
+    //auto start_SNN = chrono::high_resolution_clock::now();
+
     Mat features = snn.forward();
+
+    //auto stop_SNN = chrono::high_resolution_clock::now();
+    //auto duration_SNN = chrono::duration_cast<chrono::milliseconds>(stop_SNN - start_SNN);
+    //cout << "Time taken to load the SNN: " << duration_SNN.count() << " milliseconds" << endl;
 
     // ML Model prediction
     int prediction = ml->predict(features);
@@ -72,25 +80,63 @@ string AntiSpoofingDetection::multiple_prediction()
      *      String with the prediction so "Real" or "Fake".
     */
 
-    int real = 0;
-    string frame;
+    int count_real = 0;
 
+    // For each image take the prediction and update the count of real images.
     for (int i=1; i<n_img; i++)
-    {
-        //Extract the images saved
-        frame = frames_path + "frame" + std::to_string(i) +".jpg";
-        face = imread(frame, IMREAD_COLOR);
-
-        // Check if the prediction for the image is 0: Real or 1: Fake
-        if (AntiSpoofingDetection::value_prediction() == 0)
-            real += 1;
-    }
+        count_real = AntiSpoofingDetection::one_pred(i, count_real);
 
     // Take the one with higher number of occurences
-    if (real > n_img/2)
+    if (count_real > n_img/2)
         return "Real";
     else
         return "Fake";
+}
+
+
+
+int AntiSpoofingDetection::multiple_prediction_par(int world_rank, int world_size)
+{
+    /// Extracts all the saved images, makes the prediction for each one and count the real images
+    /** 
+     * Arguments:
+     *      world_rank: int of the current number of processor
+     *      world_size: int of the number of processors available.
+     * 
+     *  Returns:
+     *      Int of the number of real images detected.
+    */
+
+   int count_real = 0;
+
+    // For each image take the prediction and update the count of real images.
+   for(int j = world_rank; j < n_img ; j+=world_size)
+        count_real = AntiSpoofingDetection::one_pred(j+1, count_real);
+
+    return count_real;
+}
+
+
+int AntiSpoofingDetection::one_pred(int i, int count_real)
+{
+    /// Computes the prediction of a single image
+    /** 
+     * Arguments:
+     *      i: index of the image that need to be predicted.
+     *      count_real: int of the number of real images detected.
+     * 
+     *  Returns:
+     *      Int of the current total number of real images.
+    */
+
+    // Extract the images saved
+    AntiSpoofingDetection::face = imread(frames_path + "frame" + std::to_string(i) +".jpg", IMREAD_COLOR);
+                        
+    // Check if the prediction for the image is 0: Real or 1: Fake
+    if (AntiSpoofingDetection::value_prediction() == 0)
+            count_real += 1;
+
+    return count_real;
 }
 
 

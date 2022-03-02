@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
     MPI_Comm_size (MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank (MPI_COMM_WORLD, &world_rank);
 
-    auto start_Par = chrono::high_resolution_clock::now();
+    //auto start_Par = chrono::high_resolution_clock::now();
 
     GetPot cl(argc, argv);
     
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
 
     // Construct classes
     FaceDetection face_detector(detector, cap, ROI_dim);
-    AntiSpoofingDetection antispoofing_detector(snn, ml, n_img, frames_path, world_rank);
+    AntiSpoofingDetection antispoofing_detector(snn, ml, n_img, frames_path);
     FinalPrediction final_prediction(&face_detector, &antispoofing_detector);
            
     // To see the prediction of a single image
@@ -107,6 +107,7 @@ int main(int argc, char* argv[])
             // If only one processor
             if (world_size == 1)
                 final_prediction.predict_images(frames_path);
+                
             else
             {
                 int collected_images;
@@ -115,6 +116,7 @@ int main(int argc, char* argv[])
                 // If in rank 0 frames are colected
                 if (world_rank == 0)
                 {
+                    // Collect all the images
                     collected_images = collect_frames(&face_detector, &antispoofing_detector, frames_path);
 
                     // If collected_images returns one the camera was closed or disconnected
@@ -129,17 +131,8 @@ int main(int argc, char* argv[])
                 // If the images are collected all the processors can make the prediction
                 if (collected_images == 0)
                 { 
-                    int count_real = 0;
-                    for(int j = world_rank; j < n_img ; j+=world_size)
-                    {
-                        //cout << "Predicting image " + to_string(j+1) + "by processor " + to_string(world_rank) << endl;
-                        // Extract the images saved
-                        antispoofing_detector.face = imread(frames_path + "frame" + std::to_string(j+1) +".jpg", IMREAD_COLOR);
-
-                        // Check if the prediction for the image is 0: Real or 1: Fake
-                        if (antispoofing_detector.value_prediction() == 0)
-                            count_real += 1;
-                    }
+                    // Compute the prediction for the images saved
+                    int count_real =  antispoofing_detector.multiple_prediction_par(world_rank, world_size);
 
                     // Gather all partial averages down to the root process
                     int *sum_real = NULL;
@@ -159,6 +152,7 @@ int main(int argc, char* argv[])
                         else
                             antispoofing_detector.pred = "Fake";
 
+                        // Print the the status in the image
                         print_status(&face_detector.img, antispoofing_detector.pred);
                         imshow("Webcam", face_detector.img);
                         waitKey(5000);
@@ -173,11 +167,6 @@ int main(int argc, char* argv[])
             }
         }
     }
-
-    auto stop_Par = chrono::high_resolution_clock::now();
-    auto duration_Par = chrono::duration_cast<chrono::milliseconds>(stop_Par - start_Par);
-    cout << "Time taken : "
-        << duration_Par.count() << " milliseconds" << endl;
 
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();

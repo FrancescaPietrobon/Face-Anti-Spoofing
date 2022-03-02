@@ -5,6 +5,6 @@
    "face_detect" : "/home/fra/PROGETTO_PACS/Face-Anti-Spoofing/models/shape_predictor_68_face_landmarks.dat",
    "example_path" : "/home/fra/Scaricati/2022-02-08-163449.jpg",
    "ROI_dim" : 350,
-   "n_img" : 100,
+   "n_img" : 50,
    "deviceID" : 0
 }

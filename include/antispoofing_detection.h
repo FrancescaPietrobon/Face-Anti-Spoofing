@@ -20,20 +20,20 @@ using namespace dlib;
 class AntiSpoofingDetection
 {
     public:
-        AntiSpoofingDetection(dnn::Net snn, Ptr<ml::RTrees> ml, int n_img, string frames_path, int world_rank);
+        AntiSpoofingDetection(dnn::Net snn, Ptr<ml::RTrees> ml, int n_img, string frames_path);
         Mat face;
         dnn::Net snn;
         Ptr<ml::RTrees> ml;
         int n_img;
         string frames_path;
-        int world_rank;
         string pred = "Null";
         string single_prediction(); 
         string multiple_prediction();
-        //int *create_indexes(int elements_per_proc, int world_size);
-        //int compute_real(int *sub_indexes, int elements_per_proc);
+        int multiple_prediction_par(int world_rank, int world_size);
         int compute_sum_real(int *sum_real, int world_size);
         int value_prediction();
+    private:
+        int one_pred(int i, int count_real);
 };
 
 
