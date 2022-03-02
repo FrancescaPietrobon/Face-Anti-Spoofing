@@ -89,42 +89,17 @@ int FinalPrediction::predict_images(string frames_path)
      *      Int that will be 0 if all works fine and 1 if camera disconnects or is closed.
     */
 
-    string window_name = "Webcam";
-    int i = 1;
+    int collected_images = collect_frames(face_detector, antispoofing_detector, frames_path);
+    if (collected_images == 1)
+        return 1;
 
-    while (true)
-    {
-        // Until the decided number of frames is not reached collect frames
-        if (i <= antispoofing_detector->n_img)
-        {
-            i = collect_frames(face_detector, antispoofing_detector, frames_path, i);
-            if (i == antispoofing_detector->n_img + 3)
-            {
-                print_status(&face_detector->img, "Camera disconnected");
-                imshow(window_name, face_detector->img);
-                waitKey(5000);
-                return 1;
-            }     
-        }
-        else
-        {
-            // If there is no prediction compute it
-            if (antispoofing_detector->pred == "Null")
-            {
-                // Compute the overall prediction
-                antispoofing_detector->pred = antispoofing_detector->multiple_prediction();
-            }
-            else
-            {
-                // Print the prediction
-                print_status(&face_detector->img, antispoofing_detector->pred);
-                imshow(window_name, face_detector->img);
-            }
-        }
+    // Compute the overall prediction
+    antispoofing_detector->pred = antispoofing_detector->multiple_prediction();
 
-        // Check when close webcam
-        if (close_webcam()) return 1;
-    }
+    // Print the prediction
+    print_status(&face_detector->img, antispoofing_detector->pred);
+    imshow("Webcam", face_detector->img);
+    waitKey(5000);
     
     return 0;
 }       

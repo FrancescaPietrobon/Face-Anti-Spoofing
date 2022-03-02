@@ -85,9 +85,9 @@ bool close_webcam()
 }
 
 
-int collect_frames(FaceDetection *face_detector, AntiSpoofingDetection *antispoofing_detector, string frames_path, int i)
+int collect_frames(FaceDetection *face_detector, AntiSpoofingDetection *antispoofing_detector, string frames_path)
 {
-    /// Checks if the desired amoungh of frames is collected, if not a frame is collected and saved in the given folder
+    /// Collects the required amouth of images and save them in the given folder
     /** 
      * Arguments:
      *      face_detector: pointer to a class object FaceDetection that collect all the data and functions required to
@@ -95,21 +95,21 @@ int collect_frames(FaceDetection *face_detector, AntiSpoofingDetection *antispoo
      *      antispoofing_detector: pointer to a class object AntiSpoofingDetection that collect all the data and functions required to
      *                     solve the Anti-Spoofing task.
      *      frame_path: string with the path of the folder where the frames must be saved
-     *      i: int index that define how many frames are just be collected.
      * 
      *  Returns:
-     *      Int with the current value of frames collected.
+     *      Int with zero if all works fine, 1 if the camera was closed or disconnected.
     */
 
-    namedWindow( "Webcam", WINDOW_AUTOSIZE );
+    int i = 1;
     // Until the decided number of frames is not reached collect frames
-    if (i <= antispoofing_detector->n_img)
+    while (i <= antispoofing_detector->n_img)
     {
         // Read a new frame from video
         bool bSuccess = face_detector->cap.read(face_detector->img);
+        //imshow("Webcam", face_detector->img);
 
         // Stop collecting frames if the frames cannot be captured
-        if (camera_disconnection(bSuccess)) return (antispoofing_detector->n_img + 3);
+        if (camera_disconnection(bSuccess)) return 1;
 
         // If the face is detected
         if (face_detector->detect_rectangle())
@@ -128,18 +128,18 @@ int collect_frames(FaceDetection *face_detector, AntiSpoofingDetection *antispoo
                     i++;
                 } 
             }
-        }  
+        } 
+        imshow("Webcam", face_detector->img);
+        waitKey(1);
+
+        if (close_webcam()) return 1;
     }
     // After acquisition of the images required print "Performing prediction..."
-    if (i == antispoofing_detector->n_img + 1)
-    {
-        print_status(&face_detector->img, "Performing prediction...");
-        i++;
-        waitKey(100);
-    }
-
+    print_status(&face_detector->img, "Performing prediction...");
     imshow("Webcam", face_detector->img);
-    return i;
+    waitKey(10);
+
+    return 0;
 }
 
 
