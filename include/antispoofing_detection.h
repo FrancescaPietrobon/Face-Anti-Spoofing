@@ -32,6 +32,7 @@ class AntiSpoofingDetection
         int multiple_prediction_par(int world_rank, int world_size);
         int compute_sum_real(int *sum_real, int world_size);
         int value_prediction();
+        
     private:
         int one_pred(int i, int count_real);
 };

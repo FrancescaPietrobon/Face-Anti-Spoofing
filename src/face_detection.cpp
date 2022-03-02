@@ -107,9 +107,7 @@ bool FaceDetection::out_of_bounds()
     if (width_screen<ROI_dim || height_screen<ROI_dim)
         ROI_dim = int(min(width_screen, height_screen)/1.5);
 
-    // If the face or the ROI are out of bounds, the message of non centering is printed
-    //if (face_out_of_bounds_right() || face_out_of_bounds_left() || face_out_of_bounds_bottom() || face_out_of_bounds_top() ||
-    //    ROI_out_of_bounds_right() || ROI_out_of_bounds_left() || ROI_out_of_bounds_bottom() || ROI_out_of_bounds_top())
+    // If the the ROI is out of bounds, the message of non centering is printed
     if (ROI_out_of_bounds_right() || ROI_out_of_bounds_left() || ROI_out_of_bounds_bottom() || ROI_out_of_bounds_top())
     {
         print_status(&img, "The face is not centered in the screen", false);
@@ -117,17 +115,6 @@ bool FaceDetection::out_of_bounds()
     }
     return false;
 }
-
-// VEDI SE AGGIUNGERE DESCRIZIONE ANCHE A TUTTE QUESTE FUNZIONI
-/*
-bool FaceDetection::face_out_of_bounds_top() {return ((rect.y + rect.height) > height_screen);}
-
-bool FaceDetection::face_out_of_bounds_bottom() {return (rect.y < 0);}
-
-bool FaceDetection::face_out_of_bounds_right() {return ((rect.x + rect.width) > width_screen);}
-
-bool FaceDetection::face_out_of_bounds_left() {return (rect.x < 0);}
-*/
 
 
 bool FaceDetection::ROI_out_of_bounds_top() {return ((y_rect_center + ROI_dim/2) > height_screen);}
@@ -246,7 +233,7 @@ bool FaceDetection::blur_detection()
     meanStdDev(laplacianImage, mean, stddev, Mat());
     double variance = stddev.val[0] * stddev.val[0];
 
-    double threshold = 6.5; //6.5 best
+    double threshold = 8; //Between 15 and 6.5 depending on the light
 
     blurred = true;
 
@@ -289,69 +276,3 @@ Mat FaceDetection::compute_laplacian()
 
     return abs_dst;
 }
-
-
-
-
-
-
-
-
-
-
-
-/* POSSIBLE USEFUL FUNCTIONS
-
-std::vector<full_object_detection> FaceDetection::detect_shape(shape_predictor pose_model, frontal_face_detector detector, Mat temp)
-{
-    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(temp);
-
-    // Detect faces 
-    dlib::rectangle face = FaceDetection::detect_rectangle(detector, temp);
-
-    // Find the pose of each face.
-    std::vector<full_object_detection> shapes;
-
-    shapes.push_back(pose_model(cimg, face));
-
-    return shapes;
-    
-}
-
-
-void FaceDetection::print_rectangle_dlib(Mat img, std::vector<dlib::rectangle> faces, string pred)
-{
-    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(img);
-
-    image_window win;
-    win.clear_overlay();
-    win.set_image(cimg);
-    if (pred == "Null")
-        win.add_overlay(faces);
-    else
-        win.add_overlay(dlib::image_window::overlay_rect(faces[0], dlib::rgb_pixel(0, 0, 255), pred));
-    waitKey(5000);
-
-}
-
-
-void FaceDetection::print_shape(Mat img, std::vector<full_object_detection> faces)
-{
-    dlib::cv_image<dlib::bgr_pixel> cimg = FaceDetection::cv_mat_to_dlib(img);
-
-    image_window win;
-    win.clear_overlay();
-    win.set_image(cimg);
-    win.add_overlay(render_face_detections(faces));
-    waitKey(100);
-
-}
-
-
-dlib::rectangle FaceDetection::cv_rectangle_to_dlib(cv::Rect r)
-{
-    return dlib::rectangle((long)r.tl().x, (long)r.tl().y, (long)r.br().x - 1, (long)r.br().y - 1);
-}
-
-
-*/

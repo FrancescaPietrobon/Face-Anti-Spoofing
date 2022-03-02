@@ -28,8 +28,13 @@ class FinalPrediction
         FaceDetection *face_detector;
         AntiSpoofingDetection *antispoofing_detector;
         void predict_image();
-        int predict_images(string frames_path);
         int predict_realtime();
+        int predict_multiple_frames(string frames_path, int world_rank, int world_size);
+        
+    private:
+        int predict_images(string frames_path);
+        int predict_images_par(string frames_path, int world_rank, int world_size);
+
 };
 
 
