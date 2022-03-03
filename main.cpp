@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
     // Construct classes
     FaceDetection face_detector(detector, cap, ROI_dim);
     AntiSpoofingDetection antispoofing_detector(snn, ml, n_img, frames_path);
-    FinalPrediction final_prediction(&face_detector, &antispoofing_detector);
+    FinalPrediction final_predictor(&face_detector, &antispoofing_detector);
            
     // To see the prediction of a single image
     if (cl.search(2, "-p", "--path") && world_rank == 0)
@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
         face_detector.img = imread(img_selected, IMREAD_COLOR);
             
         // Perform the prediction
-        final_prediction.predict_image();
+        final_predictor.predict_image();
 
         // Let see the prediction before close the image
         waitKey(5000);
@@ -95,10 +95,10 @@ int main(int argc, char* argv[])
     {
         // To see a realtime prediction 
         if (cl.search(2, "-e", "--example")  && world_rank == 0)
-            final_prediction.predict_realtime();
+            final_predictor.predict_realtime();
         // To collect multiple frames and then make the final prediction
         else 
-            final_prediction.predict_multiple_frames(frames_path, world_rank, world_size);
+            final_predictor.predict_multiple_frames(frames_path, world_rank, world_size);
     }
 
     MPI_Barrier(MPI_COMM_WORLD);

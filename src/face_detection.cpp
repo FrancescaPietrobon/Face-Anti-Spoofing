@@ -165,10 +165,10 @@ cv::Rect FaceDetection::extract_ROI()
 
 void FaceDetection::print_rectangle_cv(string pred)
 {
-    /// Prints the image with a blue rectangle that corresponds to the dlib detected face
+    /// Puts in the image a blue rectangle that corresponds to the dlib detected face
     /// and at it's bottom corner it's dimension are printed.
-    /// Then a green rectangle is printed, it corresponds to the image used to make the prediction,
-    /// and, at top of this, is printed "Real" if the image is predicted as real, "Fake" if it is
+    /// Then a green rectangle is putted, it corresponds to the image used to make the prediction,
+    /// and, at top of this, is putted "Real" if the image is predicted as real, "Fake" if it is
     /// predicted as fake and "Blurred" if the image is blurred so cannot be predicted.
     /** 
      * Arguments:
@@ -178,8 +178,6 @@ void FaceDetection::print_rectangle_cv(string pred)
      *      None.
     */
     
-    //https://learnopencv.com/face-detection-opencv-dlib-and-deep-learning-c-python/
-
     int thickness_rectangle = 1;
     int lineType = LINE_8;
 
@@ -220,9 +218,6 @@ bool FaceDetection::blur_detection()
      *      Bool that is true if the image is blurred, false otherwise.
     */
 
-    // https://stackoverflow.com/questions/24080123/opencv-with-laplacian-formula-to-detect-image-is-blur-or-not-in-ios
-    // https://www.pyimagesearch.com/2015/09/07/blur-detection-with-opencv/
-
     Mat laplacianImage = FaceDetection::compute_laplacian();
 
     Mat gray;
@@ -254,8 +249,6 @@ Mat FaceDetection::compute_laplacian()
      *  Returns:
      *      Mat with the laplacian of the image to predict.
     */
-
-    //https://docs.opencv.org/3.4/d5/db5/tutorial_laplace_operator.html
             
     Mat src, src_gray, dst, abs_dst;
     int kernel_size = 3;

@@ -137,8 +137,8 @@ int FinalPrediction::predict_images_par(string frames_path, int world_rank, int 
     /** 
      * Arguments:
      *      frames_path: path where the frames will be collected before computing the prediction.
-     *      world_rank: int of the current number of processor
-     *      world_size: int of the number of processors available.
+     *      world_rank: int of the current number of core
+     *      world_size: int of the number of cores available.
      * 
      *  Returns:
      *      Int that will be 0 if all works fine and 1 if camera disconnects or is closed.
@@ -158,17 +158,17 @@ int FinalPrediction::predict_images_par(string frames_path, int world_rank, int 
             return 1;
     }
                 
-    // Broadcast the value of collected_images to all the processors
+    // Broadcast the value of collected_images to all the cores
     MPI_Bcast(&collected_images, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
 
-    // If the images are collected all the processors can make the prediction
+    // If the images are collected all the cores can make the prediction
     if (collected_images == 0)
     { 
         // Compute the prediction for the images saved
         int count_real =  antispoofing_detector->multiple_prediction_par(world_rank, world_size);
 
-        // Gather all partial averages down to the root process
+        // Gather all partial count_real down to the root process
         int *sum_real = NULL;
         if (world_rank == 0)
             sum_real = new int[world_size];

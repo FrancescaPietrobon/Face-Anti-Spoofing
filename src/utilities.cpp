@@ -54,7 +54,7 @@ bool camera_disconnection(bool bSuccess)
      *      None.
     */
 
-    // Breaking the while loop if the frames cannot be captured
+    // Checks if the camera is disconnected
     if (bSuccess == false) 
     {
         cout << "Video camera is disconnected" << endl;
